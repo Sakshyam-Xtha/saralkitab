@@ -23,3 +23,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             phone=validated_data["phone_num"],
             pwd=make_password(validated_data["password"])
         )
+        
+class LoginSerializer(serializers.Serializer):
+    password = serializers.CharField(max_length=1000)
+    email = serializers.CharField(max_length=200)

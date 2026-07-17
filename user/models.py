@@ -5,4 +5,4 @@ class User(models.Model):
     name = models.CharField(max_length=200)
     email = models.CharField(max_length=200)
     phone = models.IntegerField()
-    pwd = models.CharField(max_length=200)
+    pwd = models.CharField(max_length=1000)
