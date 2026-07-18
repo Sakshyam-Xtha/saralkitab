@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .models import Product,Transaction
-from .serializers import ProductSerializer,TransactionSerializer,AddProductSerializer
+from . import serializers as s
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -8,20 +8,30 @@ from rest_framework.response import Response
 @api_view(["GET"])
 def index(request):
     product = Product.objects.all()
-    serializer = ProductSerializer(product,many=True)
+    serializer = s.ProductSerializer(product,many=True)
     return Response(serializer.data)
 
 @api_view(["POST"])
 def add_product(request):
-    serializer = AddSerializer(data=request.data)
+    serializer = s.AddProductSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
-        return Response({"msg":"new product added."})
+        return Response({"msg":"new product added."},status=400)
+    else:
+        return Response(serializer.errors)
+    
+@api_view(["PATCH"])
+def update(request,id):
+    product = Product.objects.get(id=id)
+    serializer = s.UpdateSerializer(product,data=request.data,partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"msg": "data updated"},status=200)
     else:
         return Response(serializer.errors)
 
 @api_view(["GET"])
 def transaction(request):
     product = Transaction.objects.all()
-    serializer = TransactionSerializer(product,many=True)
+    serializer = s.TransactionSerializer(product,many=True)
     return Response(serializer.data)

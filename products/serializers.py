@@ -25,6 +25,27 @@ class AddProductSerializer(serializers.ModelSerializer):
             category=validated_data["category"]
         )
 
+class UpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Product
+        fields="__all__"
+        
+    def update(self,instance,validated_data):
+        instance.name = validated_data.get("name", instance.name)
+        instance.stock = validated_data.get("stock", instance.stock)
+        instance.cost_price = validated_data.get(
+            "cost_price",
+            instance.cost_price
+        )
+        instance.selling_price = validated_data.get(
+            "selling_price",
+            instance.selling_price
+        )
+
+        instance.save()
+
+        return instance
+
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
