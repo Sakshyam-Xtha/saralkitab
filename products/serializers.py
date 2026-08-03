@@ -41,6 +41,19 @@ class UpdateSerializer(serializers.ModelSerializer):
             "selling_price",
             instance.selling_price
         )
+        instance.supplier_phone = validated_data.get("supplier_phone",instance.supplier_phone)
+        instance.category = validated_data.get("category",instance.category)
+        
+        instance.save()
+
+        return instance
+class ReStockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Product
+        fields=['stock']
+        
+    def update(self,instance,validated_data):
+        instance.stock = validated_data.get("stock") + instance.stock
 
         instance.save()
 
@@ -51,4 +64,39 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = "__all__"
         
+class CreateTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = [
+            "product",
+            "transaction_type",
+            "quantity",
+            "payment_type",
+        ]
+
+    def create(self, validated_data):
+        product = validated_data["product"]
+        quantity = validated_data["quantity"]
+        transaction_type = validated_data["transaction_type"]
+
+        if transaction_type == Transaction.TransactionType.SALE:
+            if product.stock < quantity:
+                raise serializers.ValidationError(
+                    {"quantity": "Not enough stock."}
+                )
+            product.stock -= quantity
+
+        elif transaction_type == Transaction.TransactionType.RETURN:
+            product.stock += quantity
+
+        product.save()
+
+        return Transaction.objects.create(
+            product=product,
+            transaction_type=transaction_type,
+            quantity=quantity,
+            payment_type=validated_data["payment_type"],
+            unit_cost_price=product.cost_price,
+            unit_selling_price=product.selling_price,
+        )
         

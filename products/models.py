@@ -18,6 +18,7 @@ class Transaction(models.Model):
     class TransactionType(models.TextChoices):
         SALE = "SALE", "Sale"
         RETURN = "RETURN", "Return"
+        RESTOCK = "RESTOCK", "Restock"
 
     class PaymentType(models.TextChoices):
         CASH = "CASH", "Cash"
@@ -44,7 +45,12 @@ class Transaction(models.Model):
         choices=PaymentType.choices
     )
 
-    unit_price = models.DecimalField(
+    unit_cost_price = models.DecimalField(
+    max_digits=10,
+    decimal_places=2
+)
+
+    unit_selling_price = models.DecimalField(
         max_digits=10,
         decimal_places=2
     )
