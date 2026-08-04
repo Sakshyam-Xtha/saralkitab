@@ -32,7 +32,29 @@ def delete_product(request,id):
         return Response({"msg":"not found"},status=404)
     product.delete()
     return Response({"msg":"product deleted"},status=200)
+
+@api_view(['GET'])
+def search_product(request,name):
+    product = Product.objects.filter(name__iexact=name) 
+    if not product:
+        return Response({"msg":"not found"},status=404)  
+    else:
+        serializer = s.ProductSerializer(product,many=True)
+        return Response(serializer.data)
     
+@api_view(['GET'])
+def filter_product(request):
+    category = request.query_params.get("category")
+    if category:
+        product = Product.objects.filter(category__icontains=category.lower()) 
+        if not product:
+            return Response({"msg":"not found"},status=404)  
+        else:
+            serializer = s.ProductSerializer(product,many=True)
+            return Response(serializer.data)
+    else:
+        return Response({"msg":"invalid parameter"})
+
 @api_view(["PATCH"])
 def update(request,id):
     product = Product.objects.get(id=id)
@@ -70,5 +92,15 @@ def make_transaction(request):
     if serializer.is_valid():
         serializer.save()
         return Response({"msg":"created new transaction record"},status=400)
+    else:
+        return Response(serializer.errors)
+    
+@api_view(["PATCH"])
+def update_transaction(request,id):
+    transaction = Transaction.objects.get(id=id)
+    serializer = s.UpdateTransactionSerializer(transaction,data=request.data,partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"msg": "data updated"},status=200)
     else:
         return Response(serializer.errors)

@@ -16,16 +16,16 @@ class Product(models.Model):
 class Transaction(models.Model):
 
     class TransactionType(models.TextChoices):
-        SALE = "SALE", "Sale"
-        RETURN = "RETURN", "Return"
-        RESTOCK = "RESTOCK", "Restock"
+        SALE = "sale", "Sale"
+        RETURN = "return", "Return"
+        RESTOCK = "restock", "Restock"
 
     class PaymentType(models.TextChoices):
-        CASH = "CASH", "Cash"
-        ESEWA = "ESEWA", "eSewa"
-        KHALTI = "KHALTI", "Khalti"
-        CARD = "CARD", "Card"
-        BANK = "BANK", "Bank Transfer"
+        CASH = "cash", "Cash"
+        ESEWA = "esewa", "eSewa"
+        KHALTI = "khalti", "Khalti"
+        CARD = "card", "Card"
+        BANK = "bank", "Bank Transfer"
 
     product = models.ForeignKey(
         Product,
