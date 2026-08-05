@@ -9,6 +9,8 @@ export default function Auth({ onLogin }) {
   const [registerForm, setRegisterForm] = useState({ username: '', email: '', phone_num: '', password: '' })
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
+  const [serverMsg, setServerMsg] = useState(null)
+  const [testing, setTesting] = useState(false)
 
   const setLogin = (key) => (e) => setLoginForm((f) => ({ ...f, [key]: e.target.value }))
   const setRegister = (key) => (e) => setRegisterForm((f) => ({ ...f, [key]: e.target.value }))
@@ -22,6 +24,25 @@ export default function Auth({ onLogin }) {
     e.preventDefault()
     setBaseUrl(server)
     setMsg({ type: 'success', text: 'Server address saved.' })
+  }
+
+  const testServer = async () => {
+    setTesting(true)
+    setServerMsg(null)
+    const url = server.replace(/\/+$/, '')
+    try {
+      const res = await fetch(`${url}/products/`, { headers: { 'Content-Type': 'application/json' } })
+      setServerMsg({
+        type: 'success',
+        text: `Reachable! Server responded (HTTP ${res.status}). Save, then sign in.`,
+      })
+    } catch {
+      setServerMsg({
+        type: 'error',
+        text: `Not reachable at ${url}. Check the address and that the server runs with runserver 0.0.0.0:8000.`,
+      })
+    }
+    setTesting(false)
   }
 
   const handleLogin = async (e) => {
@@ -69,7 +90,11 @@ export default function Auth({ onLogin }) {
             />
           </Field>
           <button className="btn btn-ghost btn-sm" type="submit">Save</button>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={testServer} disabled={testing}>
+            {testing ? 'Testing…' : 'Test'}
+          </button>
         </form>
+        <Message type={serverMsg?.type}>{serverMsg?.text}</Message>
         <Message type={msg?.type}>{msg?.text}</Message>
         <div className="auth-tabs">
           <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('login')}>
