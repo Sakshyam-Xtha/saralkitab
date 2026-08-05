@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { api, errorText } from '../api'
+import { api, errorText, getBaseUrl, setBaseUrl } from '../api'
 import { Field, Message } from './ui'
 
 export default function Auth({ onLogin }) {
   const [mode, setMode] = useState('login')
+  const [server, setServer] = useState(getBaseUrl())
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ username: '', email: '', phone_num: '', password: '' })
   const [busy, setBusy] = useState(false)
@@ -15,6 +16,12 @@ export default function Auth({ onLogin }) {
   const switchMode = (m) => {
     setMode(m)
     setMsg(null)
+  }
+
+  const saveServer = (e) => {
+    e.preventDefault()
+    setBaseUrl(server)
+    setMsg({ type: 'success', text: 'Server address saved.' })
   }
 
   const handleLogin = async (e) => {
@@ -52,6 +59,18 @@ export default function Auth({ onLogin }) {
     <div className="auth-gate">
       <div className="auth-gate-card">
         <div className="brand auth-brand">Sales<span>Record</span></div>
+        <form className="form server-form" onSubmit={saveServer}>
+          <Field label="Server address">
+            <input
+              type="text"
+              value={server}
+              onChange={(e) => setServer(e.target.value)}
+              placeholder="http://192.168.1.5:8000"
+            />
+          </Field>
+          <button className="btn btn-ghost btn-sm" type="submit">Save</button>
+        </form>
+        <Message type={msg?.type}>{msg?.text}</Message>
         <div className="auth-tabs">
           <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('login')}>
             Sign in

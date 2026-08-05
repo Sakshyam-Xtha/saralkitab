@@ -590,6 +590,23 @@ tr.editing td {
   margin-bottom: 22px;
 }
 
+.server-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.server-form .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.server-form .btn {
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
 .auth-tabs {
   display: flex;
   gap: 4px;
