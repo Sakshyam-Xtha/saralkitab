@@ -49,15 +49,36 @@ class UpdateSerializer(serializers.ModelSerializer):
         return instance
 class ReStockSerializer(serializers.ModelSerializer):
     class Meta:
-        model=Product
-        fields=['stock']
+        model=Transaction
+        fields = [
+            "product",
+            "quantity",
+            "payment_type",
+            "unit_cost_price",
+            "unit_selling_price",
+        ]
         
-    def update(self,instance,validated_data):
-        instance.stock = validated_data.get("stock") + instance.stock
+    def create(self,validated_data):
+        if validated_data["quantity"] <= 0:
+            raise serializers.ValidationError(
+                {"quantity":"invalid value"}
+            )
 
-        instance.save()
-
-        return instance
+        product = validated_data["product"]
+        product.stock += validated_data["quantity"]
+        product.cost_price = validated_data["unit_cost_price"]
+        product.selling_price = validated_data["unit_selling_price"]
+        
+        product.save()
+        
+        return Transaction.objects.create(
+            product=product,
+            transaction_type=Transaction.TransactionType.RESTOCK,
+            quantity=validated_data["quantity"],
+            payment_type=validated_data["payment_type"],
+            unit_cost_price=validated_data["unit_cost_price"],
+            unit_selling_price=validated_data["unit_selling_price"],
+        )
 
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:

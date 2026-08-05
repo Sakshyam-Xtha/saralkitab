@@ -39,11 +39,19 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'user',
     'products',
-    'rest_framework'
+    'rest_framework',
+    'rest_framework.authtoken'
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication'
+    ]
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'app.middleware.CORSMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -101,6 +109,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = "user.User"
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

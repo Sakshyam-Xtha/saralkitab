@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view
 from .models import User
 from .serializers import UserSerializer,RegisterSerializer,LoginSerializer
@@ -24,19 +25,22 @@ def Login(request):
         email = serializer.validated_data["email"]
         user = User.objects.filter(email=email).first()
         if user is None:
-            return Response({"msg":"Invalid email or password"})
-        if check_password(serializer.validated_data["password"],user.pwd):
-            return Response({"msg":"Login successful"})
+            return Response({"msg":"Invalid email or password"},status=401)
+        if user.check_password(serializer.validated_data["password"]):
+            token, created = Token.objects.get_or_create(user=user)
+            user_serializer = UserSerializer(user)
+            return Response({"msg":"Login successful","user":user_serializer.data,"token": token.key})
         else:
-            return Response({"msg":"Invalid email or password"},status=400)
+            return Response({"msg":"Invalid email or password"},status=401)
     else:
-        return Response(serializer.errors)
+        return Response(serializer.errors,status=400)
 
 @api_view(["POST"])
 def Register(request):
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
-        return Response({"msg":"user created"})
+        user = serializer.save()
+        user_serializer = UserSerializer(user)
+        return Response({"msg":"user created","user":user_serializer.data},status=201)
     else:
-        return Response(serializer.errors)
+        return Response(serializer.errors,status=400)
