@@ -1,0 +1,5 @@
+{
+  "appId": "com.salesrecord.app",
+  "appName": "Sales Record",
+  "webDir": "dist"
+}

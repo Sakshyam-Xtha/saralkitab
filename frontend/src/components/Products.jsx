@@ -202,28 +202,28 @@ export default function Products() {
                   {filtered.map((p) =>
                     editingId === p.id ? (
                       <tr key={p.id} className="editing">
-                        <td><input className="input" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></td>
-                        <td><input className="input" value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} /></td>
-                        <td><input className="input" type="number" step="0.01" min="0" value={editForm.cost_price} onChange={(e) => setEditForm({ ...editForm, cost_price: e.target.value })} /></td>
-                        <td><input className="input" type="number" step="0.01" min="0" value={editForm.selling_price} onChange={(e) => setEditForm({ ...editForm, selling_price: e.target.value })} /></td>
-                        <td><input className="input" type="number" min="0" value={editForm.stock} onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })} /></td>
-                        <td><input className="input" value={editForm.supplier_phone} onChange={(e) => setEditForm({ ...editForm, supplier_phone: e.target.value })} /></td>
-                        <td className="row-actions">
+                        <td data-label="Name"><input className="input" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></td>
+                        <td data-label="Category"><input className="input" value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} /></td>
+                        <td data-label="Cost"><input className="input" type="number" step="0.01" min="0" value={editForm.cost_price} onChange={(e) => setEditForm({ ...editForm, cost_price: e.target.value })} /></td>
+                        <td data-label="Selling"><input className="input" type="number" step="0.01" min="0" value={editForm.selling_price} onChange={(e) => setEditForm({ ...editForm, selling_price: e.target.value })} /></td>
+                        <td data-label="Stock"><input className="input" type="number" min="0" value={editForm.stock} onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })} /></td>
+                        <td data-label="Supplier"><input className="input" value={editForm.supplier_phone} onChange={(e) => setEditForm({ ...editForm, supplier_phone: e.target.value })} /></td>
+                        <td className="row-actions" data-label="Actions">
                           <button className="btn btn-primary btn-sm" onClick={() => handleSaveEdit(p.id)}>Save</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
                         </td>
                       </tr>
                     ) : (
                       <tr key={p.id}>
-                        <td className="strong">{p.name}</td>
-                        <td><span className="badge">{p.category}</span></td>
-                        <td className="num">{formatMoney(p.cost_price)}</td>
-                        <td className="num">{formatMoney(p.selling_price)}</td>
-                        <td className="num">
+                        <td className="strong" data-label="Name">{p.name}</td>
+                        <td data-label="Category"><span className="badge">{p.category}</span></td>
+                        <td className="num" data-label="Cost">{formatMoney(p.cost_price)}</td>
+                        <td className="num" data-label="Selling">{formatMoney(p.selling_price)}</td>
+                        <td className="num" data-label="Stock">
                           <span className={Number(p.stock) === 0 ? 'stock-out' : 'stock'}>{p.stock}</span>
                         </td>
-                        <td>{p.supplier_phone}</td>
-                        <td className="row-actions">
+                        <td data-label="Supplier">{p.supplier_phone}</td>
+                        <td className="row-actions" data-label="Actions">
                           <button className="btn btn-ghost btn-sm" onClick={() => startEdit(p)}>Edit</button>
                           <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id, p.name)}>Delete</button>
                         </td>

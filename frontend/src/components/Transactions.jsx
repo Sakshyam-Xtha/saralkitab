@@ -201,14 +201,14 @@ export default function Transactions() {
               <tbody>
                 {transactions.map((t) => (
                   <tr key={t.id}>
-                    <td className="muted">{t.id}</td>
-                    <td className="strong">{productById(t.product)?.name || `Product #${t.product}`}</td>
-                    <td><span className={`badge badge-${t.transaction_type}`}>{typeLabel(t.transaction_type)}</span></td>
-                    <td className="num">{t.quantity}</td>
-                    <td>{t.payment_type}</td>
-                    <td className="num">{formatMoney(t.unit_cost_price)}</td>
-                    <td className="num">{formatMoney(t.unit_selling_price)}</td>
-                    <td className="muted">{new Date(t.created_at).toLocaleString()}</td>
+                    <td className="muted" data-label="ID">{t.id}</td>
+                    <td className="strong" data-label="Product">{productById(t.product)?.name || `Product #${t.product}`}</td>
+                    <td data-label="Type"><span className={`badge badge-${t.transaction_type}`}>{typeLabel(t.transaction_type)}</span></td>
+                    <td className="num" data-label="Qty">{t.quantity}</td>
+                    <td data-label="Payment">{t.payment_type}</td>
+                    <td className="num" data-label="Unit cost">{formatMoney(t.unit_cost_price)}</td>
+                    <td className="num" data-label="Unit selling">{formatMoney(t.unit_selling_price)}</td>
+                    <td className="muted" data-label="Date">{new Date(t.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

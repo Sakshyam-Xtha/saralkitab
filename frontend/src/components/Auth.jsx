@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api, errorText } from '../api'
 import { Field, Message } from './ui'
 
-export default function Auth({ user, onLogin }) {
+export default function Auth({ onLogin }) {
   const [mode, setMode] = useState('login')
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ username: '', email: '', phone_num: '', password: '' })
@@ -12,18 +12,22 @@ export default function Auth({ user, onLogin }) {
   const setLogin = (key) => (e) => setLoginForm((f) => ({ ...f, [key]: e.target.value }))
   const setRegister = (key) => (e) => setRegisterForm((f) => ({ ...f, [key]: e.target.value }))
 
+  const switchMode = (m) => {
+    setMode(m)
+    setMsg(null)
+  }
+
   const handleLogin = async (e) => {
     e.preventDefault()
     setBusy(true)
     setMsg(null)
     const res = await api.login(loginForm)
-    if (res.ok && res.data?.user) {
-      onLogin(res.data.user)
-      setMsg({ type: 'success', text: res.data.msg || 'Login successful' })
+    if (res.ok && res.data?.user && res.data?.token) {
+      onLogin(res.data.user, res.data.token)
     } else {
       setMsg({ type: 'error', text: errorText(res.data, 'Login failed') })
+      setBusy(false)
     }
-    setBusy(false)
   }
 
   const handleRegister = async (e) => {
@@ -34,45 +38,27 @@ export default function Auth({ user, onLogin }) {
       ...registerForm,
       phone_num: Number(registerForm.phone_num),
     })
-    if (res.ok) {
-      setMsg({ type: 'success', text: `${res.data?.msg || 'User created'}. You can now sign in.` })
+    if (res.ok && res.data?.user) {
+      setMsg({ type: 'success', text: `${res.data.msg || 'User created'}. Sign in to continue.` })
       setLoginForm({ email: registerForm.email, password: registerForm.password })
-      setMode('login')
+      switchMode('login')
     } else {
       setMsg({ type: 'error', text: errorText(res.data, 'Registration failed') })
     }
     setBusy(false)
   }
 
-  if (user) {
-    return (
-      <section>
-        <div className="card profile-card">
-          <div className="profile">
-            <span className="avatar avatar-lg">{user.name?.[0]?.toUpperCase()}</span>
-            <div>
-              <h2>{user.name}</h2>
-              <p className="muted">{user.email}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-    )
-  }
-
   return (
-    <section>
-      <div className="page-head">
-        <div>
-          <h1>Account</h1>
-          <p className="muted">Sign in or create an account</p>
-        </div>
-      </div>
-
-      <div className="card auth-card">
+    <div className="auth-gate">
+      <div className="auth-gate-card">
+        <div className="brand auth-brand">Sales<span>Record</span></div>
         <div className="auth-tabs">
-          <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => { setMode('login'); setMsg(null) }}>Sign in</button>
-          <button className={mode === 'register' ? 'auth-tab active' : 'auth-tab'} onClick={() => { setMode('register'); setMsg(null) }}>Create account</button>
+          <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('login')}>
+            Sign in
+          </button>
+          <button className={mode === 'register' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('register')}>
+            Create account
+          </button>
         </div>
 
         <Message type={msg?.type}>{msg?.text}</Message>
@@ -105,6 +91,6 @@ export default function Auth({ user, onLogin }) {
           </form>
         )}
       </div>
-    </section>
+    </div>
   )
 }
