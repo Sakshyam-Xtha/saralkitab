@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, errorText, formatMoney } from '../api'
 import { Field, Message, Spinner } from './ui'
+import Sheet from './Sheet'
 
 const PAYMENT_TYPES = [
   ['cash', 'Cash'],
@@ -10,17 +11,94 @@ const PAYMENT_TYPES = [
   ['bank', 'Bank Transfer'],
 ]
 
-const emptyCreate = { product: '', transaction_type: 'sale', quantity: '', payment_type: 'cash' }
-const emptyRestock = { product: '', quantity: '', payment_type: 'cash', unit_cost_price: '', unit_selling_price: '' }
+const TYPES = [
+  { id: 'sale', label: 'Sale' },
+  { id: 'return', label: 'Return' },
+  { id: 'restock', label: 'Restock' },
+]
+
+const TYPE_LABELS = { sale: 'Sale', return: 'Return', restock: 'Restock' }
+
+const emptyForm = {
+  product: '',
+  quantity: '',
+  payment_type: 'cash',
+  unit_cost_price: '',
+  unit_selling_price: '',
+}
+
+const icons = {
+  plus: <path d="M12 5v14M5 12h14" />,
+  chevron: <path d="m9 18 6-6-6-6" />,
+  trendUp: (
+    <>
+      <path d="m22 7-8.5 8.5-5-5L2 17" />
+      <path d="M16 7h6v6" />
+    </>
+  ),
+  trendDown: (
+    <>
+      <path d="m22 17-8.5-8.5-5 5L2 7" />
+      <path d="M16 17h6v-6" />
+    </>
+  ),
+  refresh: (
+    <>
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v6h-6" />
+    </>
+  ),
+  receipt: (
+    <>
+      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+      <path d="M8 7h8" />
+      <path d="M8 11h8" />
+      <path d="M8 15h5" />
+    </>
+  ),
+}
+
+function Icon({ name, className }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {icons[name]}
+    </svg>
+  )
+}
+
+const payLabel = (v) => {
+  const found = PAYMENT_TYPES.find(([key]) => key === v)
+  return found ? found[1] : v
+}
+
+const num = (v) => Number(v) || 0
+
+function fmtDate(iso) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  return `${date}, ${time}`
+}
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [createForm, setCreateForm] = useState(emptyCreate)
-  const [restockForm, setRestockForm] = useState(emptyRestock)
+  const [recordType, setRecordType] = useState('sale')
+  const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
+  const [recordOpen, setRecordOpen] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -36,186 +114,170 @@ export default function Transactions() {
 
   const productById = (id) => products.find((p) => String(p.id) === String(id))
 
-  const setCreate = (key) => (e) => setCreateForm((f) => ({ ...f, [key]: e.target.value }))
-  const setRestock = (key) => (e) => setRestockForm((f) => ({ ...f, [key]: e.target.value }))
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
-  const handleCreate = async (e) => {
+  const openRecord = (type = 'sale') => {
+    setRecordType(type)
+    setForm(emptyForm)
+    setRecordOpen(true)
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!createForm.product) {
+    if (!form.product) {
       setMsg({ type: 'error', text: 'Select a product' })
       return
     }
     setBusy(true)
     setMsg(null)
-    const res = await api.createTransaction({
-      ...createForm,
-      product: Number(createForm.product),
-      quantity: Number(createForm.quantity),
-    })
+
+    let res
+    if (recordType === 'restock') {
+      res = await api.restock(form.product, {
+        quantity: Number(form.quantity),
+        payment_type: form.payment_type,
+        unit_cost_price: Number(form.unit_cost_price),
+        unit_selling_price: Number(form.unit_selling_price),
+      })
+    } else {
+      res = await api.createTransaction({
+        product: Number(form.product),
+        transaction_type: recordType,
+        quantity: Number(form.quantity),
+        payment_type: form.payment_type,
+      })
+    }
+
     if (res.ok) {
-      setMsg({ type: 'success', text: res.data?.msg || 'Transaction recorded' })
-      setCreateForm(emptyCreate)
+      setMsg({
+        type: 'success',
+        text: res.data?.msg || (recordType === 'restock' ? 'Stock restocked' : 'Transaction recorded'),
+      })
+      setForm(emptyForm)
+      setRecordOpen(false)
       await load()
     } else {
-      setMsg({ type: 'error', text: errorText(res.data, 'Failed to create transaction') })
+      setMsg({ type: 'error', text: errorText(res.data, 'Failed to save transaction') })
     }
     setBusy(false)
   }
 
-  const handleRestock = async (e) => {
-    e.preventDefault()
-    if (!restockForm.product) {
-      setMsg({ type: 'error', text: 'Select a product' })
-      return
-    }
-    setBusy(true)
-    setMsg(null)
-    const res = await api.restock(restockForm.product, {
-      quantity: Number(restockForm.quantity),
-      payment_type: restockForm.payment_type,
-      unit_cost_price: Number(restockForm.unit_cost_price),
-      unit_selling_price: Number(restockForm.unit_selling_price),
-    })
-    if (res.ok) {
-      setMsg({ type: 'success', text: res.data?.msg || 'Stock restocked' })
-      setRestockForm(emptyRestock)
-      await load()
-    } else {
-      setMsg({ type: 'error', text: errorText(res.data, 'Failed to restock') })
-    }
-    setBusy(false)
-  }
+  const isRestock = recordType === 'restock'
 
-  const typeLabel = (t) => {
-    const labels = { sale: 'Sale', return: 'Return', restock: 'Restock' }
-    return labels[t] || t
+  const rowMeta = (t) => {
+    if (t.transaction_type === 'restock') {
+      return { icon: 'refresh', tone: 'primary', amount: formatMoney(num(t.unit_cost_price) * num(t.quantity)), qty: `+${t.quantity}` }
+    }
+    if (t.transaction_type === 'return') {
+      return { icon: 'trendDown', tone: 'warning', amount: formatMoney(num(t.unit_selling_price) * num(t.quantity)), qty: `−${t.quantity}` }
+    }
+    return { icon: 'trendUp', tone: 'success', amount: formatMoney(num(t.unit_selling_price) * num(t.quantity)), qty: `+${t.quantity}` }
   }
 
   return (
     <section>
-      <div className="page-head">
-        <div>
-          <h1>Transactions</h1>
-          <p className="muted">Record sales, returns and restocks</p>
-        </div>
-      </div>
-
       <Message type={msg?.type}>{msg?.text}</Message>
 
-      <div className="grid-2">
-        <div className="card">
-          <h2>New sale / return</h2>
-          <form className="form" onSubmit={handleCreate}>
-            <Field label="Product">
-              <select value={createForm.product} onChange={setCreate('product')} required>
-                <option value="">Select product…</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} (stock: {p.stock})</option>
-                ))}
-              </select>
+      <div className="chips" aria-label="Record a transaction">
+        {TYPES.map((t) => (
+          <button key={t.id} className="chip" onClick={() => openRecord(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <Spinner />
+      ) : msg?.type === 'error' && transactions.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon"><Icon name="receipt" /></div>
+          <p className="muted">{msg.text}</p>
+          <button className="btn btn-ghost" onClick={load}>Retry</button>
+        </div>
+      ) : transactions.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon"><Icon name="receipt" /></div>
+          <div className="empty-title">No transactions yet</div>
+          <p className="muted">Record your first sale, return or restock.</p>
+          <button className="btn btn-primary" onClick={() => openRecord('sale')}>Record transaction</button>
+        </div>
+      ) : (
+        <>
+          <h2 className="muted" style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+            History
+          </h2>
+          <div className="list">
+            {transactions.map((t) => {
+              const meta = rowMeta(t)
+              return (
+                <div key={t.id} className="list-row">
+                  <span className={`list-icon ${meta.tone}`}><Icon name={meta.icon} /></span>
+                  <span className="list-main">
+                    <span className="list-title">{productById(t.product)?.name || `Product #${t.product}`}</span>
+                    <span className="list-sub">{TYPE_LABELS[t.transaction_type]} · {payLabel(t.payment_type)} · {fmtDate(t.created_at)}</span>
+                  </span>
+                  <span className="list-right">
+                    <span className="list-value">{meta.qty}</span>
+                    <span className="list-sub">{meta.amount}</span>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {transactions.length > 0 && (
+        <button className="fab" aria-label="Record transaction" onClick={() => openRecord('sale')}>
+          <Icon name="plus" />
+        </button>
+      )}
+
+      <Sheet open={recordOpen} onClose={() => setRecordOpen(false)} title="Record transaction">        <div className="seg" style={{ marginBottom: 16 }}>
+          {TYPES.map((t) => (
+            <button
+              key={t.id}
+              className={recordType === t.id ? 'active' : ''}
+              onClick={() => setRecordType(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <form className="form" onSubmit={handleSubmit}>
+          <Field label="Product">
+            <select value={form.product} onChange={set('product')} required>
+              <option value="">Select product…</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>{p.name} (stock: {p.stock})</option>
+              ))}
+            </select>
+          </Field>
+          <div className="grid-2">
+            <Field label="Quantity">
+              <input type="number" min="1" value={form.quantity} onChange={set('quantity')} required />
             </Field>
-            <div className="grid-2">
-              <Field label="Type">
-                <select value={createForm.transaction_type} onChange={setCreate('transaction_type')}>
-                  <option value="sale">Sale</option>
-                  <option value="return">Return</option>
-                </select>
-              </Field>
-              <Field label="Quantity">
-                <input type="number" min="1" value={createForm.quantity} onChange={setCreate('quantity')} required />
-              </Field>
-            </div>
             <Field label="Payment">
-              <select value={createForm.payment_type} onChange={setCreate('payment_type')}>
+              <select value={form.payment_type} onChange={set('payment_type')}>
                 {PAYMENT_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </Field>
-            <button className="btn btn-primary" disabled={busy}>
-              {busy ? 'Saving…' : 'Record transaction'}
-            </button>
-          </form>
-        </div>
-
-        <div className="card">
-          <h2>Restock</h2>
-          <form className="form" onSubmit={handleRestock}>
-            <Field label="Product">
-              <select value={restockForm.product} onChange={setRestock('product')} required>
-                <option value="">Select product…</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} (stock: {p.stock})</option>
-                ))}
-              </select>
-            </Field>
-            <div className="grid-2">
-              <Field label="Quantity">
-                <input type="number" min="1" value={restockForm.quantity} onChange={setRestock('quantity')} required />
-              </Field>
-              <Field label="Payment">
-                <select value={restockForm.payment_type} onChange={setRestock('payment_type')}>
-                  {PAYMENT_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              </Field>
-            </div>
+          </div>
+          {isRestock && (
             <div className="grid-2">
               <Field label="Unit cost">
-                <input type="number" step="0.01" min="0" value={restockForm.unit_cost_price} onChange={setRestock('unit_cost_price')} required />
+                <input type="number" step="0.01" min="0" value={form.unit_cost_price} onChange={set('unit_cost_price')} required />
               </Field>
               <Field label="Unit selling">
-                <input type="number" step="0.01" min="0" value={restockForm.unit_selling_price} onChange={setRestock('unit_selling_price')} required />
+                <input type="number" step="0.01" min="0" value={form.unit_selling_price} onChange={set('unit_selling_price')} required />
               </Field>
             </div>
-            <button className="btn btn-primary" disabled={busy}>
-              {busy ? 'Restocking…' : 'Restock'}
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div className="card">
-        <h2>History</h2>
-        {loading ? (
-          <Spinner />
-        ) : msg?.type === 'error' && transactions.length === 0 ? (
-          <div className="empty-state">
-            <p className="muted">{msg.text}</p>
-            <button className="btn btn-ghost" onClick={load}>Retry</button>
-          </div>
-        ) : transactions.length === 0 ? (
-          <p className="muted">No transactions yet.</p>
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Product</th>
-                  <th>Type</th>
-                  <th className="num">Qty</th>
-                  <th>Payment</th>
-                  <th className="num">Unit cost</th>
-                  <th className="num">Unit selling</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((t) => (
-                  <tr key={t.id}>
-                    <td className="muted" data-label="ID">{t.id}</td>
-                    <td className="strong" data-label="Product">{productById(t.product)?.name || `Product #${t.product}`}</td>
-                    <td data-label="Type"><span className={`badge badge-${t.transaction_type}`}>{typeLabel(t.transaction_type)}</span></td>
-                    <td className="num" data-label="Qty">{t.quantity}</td>
-                    <td data-label="Payment">{t.payment_type}</td>
-                    <td className="num" data-label="Unit cost">{formatMoney(t.unit_cost_price)}</td>
-                    <td className="num" data-label="Unit selling">{formatMoney(t.unit_selling_price)}</td>
-                    <td className="muted" data-label="Date">{new Date(t.created_at).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+          )}
+          <button className="btn btn-primary btn-block" disabled={busy}>
+            {busy ? 'Saving…' : isRestock ? 'Restock' : recordType === 'return' ? 'Record return' : 'Record sale'}
+          </button>
+        </form>
+      </Sheet>
     </section>
   )
 }

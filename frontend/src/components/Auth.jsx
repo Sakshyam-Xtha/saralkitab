@@ -2,9 +2,38 @@ import { useState } from 'react'
 import { api, errorText, getBaseUrl, setBaseUrl } from '../api'
 import { Field, Message } from './ui'
 
+const icons = {
+  brand: (
+    <>
+      <rect width="12" height="12" x="6" y="6" rx="2" />
+      <path d="M6 12h12" />
+      <path d="M12 12v6" />
+    </>
+  ),
+  chevron: <path d="m6 9 6 6 6-6" />,
+}
+
+function Icon({ name, className }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {icons[name]}
+    </svg>
+  )
+}
+
 export default function Auth({ onLogin }) {
   const [mode, setMode] = useState('login')
   const [server, setServer] = useState(getBaseUrl())
+  const [serverOpen, setServerOpen] = useState(false)
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ username: '', email: '', phone_num: '', password: '' })
   const [busy, setBusy] = useState(false)
@@ -23,7 +52,7 @@ export default function Auth({ onLogin }) {
   const saveServer = (e) => {
     e.preventDefault()
     setBaseUrl(server)
-    setMsg({ type: 'success', text: 'Server address saved.' })
+    setServerMsg({ type: 'success', text: 'Server address saved.' })
   }
 
   const testServer = async () => {
@@ -80,62 +109,86 @@ export default function Auth({ onLogin }) {
 
   return (
     <div className="auth-gate">
-      <div className="auth-gate-card">
-        <div className="brand auth-brand">Sales<span>Record</span></div>
-        <form className="form server-form" onSubmit={saveServer}>
-          <Field label="Server address">
-            <input
-              type="text"
-              value={server}
-              onChange={(e) => setServer(e.target.value)}
-              placeholder="http://192.168.1.5:8000"
-            />
-          </Field>
-          <button className="btn btn-ghost btn-sm" type="submit">Save</button>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={testServer} disabled={testing}>
-            {testing ? 'Testing…' : 'Test'}
-          </button>
-        </form>
-        <Message type={serverMsg?.type}>{serverMsg?.text}</Message>
-        <Message type={msg?.type}>{msg?.text}</Message>
-        <div className="auth-tabs">
-          <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('login')}>
+      <div className="auth-head">
+        <div className="auth-brand">
+          <span className="brand-mark"><Icon name="brand" /></span>
+          Sales<span>Record</span>
+        </div>
+      </div>
+
+      <div className="auth-card">
+        <div className="seg" aria-label="Auth mode">
+          <button className={mode === 'login' ? 'active' : ''} onClick={() => switchMode('login')}>
             Sign in
           </button>
-          <button className={mode === 'register' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('register')}>
+          <button className={mode === 'register' ? 'active' : ''} onClick={() => switchMode('register')}>
             Create account
           </button>
         </div>
 
-        <Message type={msg?.type}>{msg?.text}</Message>
+        <div className="auth-body">
+          <Message type={msg?.type}>{msg?.text}</Message>
+          {mode === 'login' ? (
+            <form className="form" onSubmit={handleLogin} id="auth-form">
+              <Field label="Email">
+                <input type="email" inputMode="email" value={loginForm.email} onChange={setLogin('email')} required />
+              </Field>
+              <Field label="Password">
+                <input type="password" value={loginForm.password} onChange={setLogin('password')} required />
+              </Field>
+            </form>
+          ) : (
+            <form className="form" onSubmit={handleRegister} id="auth-form">
+              <Field label="Name">
+                <input value={registerForm.username} onChange={setRegister('username')} required />
+              </Field>
+              <Field label="Email">
+                <input type="email" inputMode="email" value={registerForm.email} onChange={setRegister('email')} required />
+              </Field>
+              <Field label="Phone">
+                <input type="tel" inputMode="tel" value={registerForm.phone_num} onChange={setRegister('phone_num')} required />
+              </Field>
+              <Field label="Password">
+                <input type="password" value={registerForm.password} onChange={setRegister('password')} required />
+              </Field>
+            </form>
+          )}
+        </div>
 
-        {mode === 'login' ? (
-          <form className="form" onSubmit={handleLogin}>
-            <Field label="Email">
-              <input type="email" value={loginForm.email} onChange={setLogin('email')} required />
-            </Field>
-            <Field label="Password">
-              <input type="password" value={loginForm.password} onChange={setLogin('password')} required />
-            </Field>
-            <button className="btn btn-primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-          </form>
-        ) : (
-          <form className="form" onSubmit={handleRegister}>
-            <Field label="Name">
-              <input value={registerForm.username} onChange={setRegister('username')} required />
-            </Field>
-            <Field label="Email">
-              <input type="email" value={registerForm.email} onChange={setRegister('email')} required />
-            </Field>
-            <Field label="Phone">
-              <input type="tel" value={registerForm.phone_num} onChange={setRegister('phone_num')} required />
-            </Field>
-            <Field label="Password">
-              <input type="password" value={registerForm.password} onChange={setRegister('password')} required />
-            </Field>
-            <button className="btn btn-primary" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
-          </form>
-        )}
+        <div className="server-block">
+          <button
+            className="server-toggle"
+            aria-expanded={serverOpen}
+            onClick={() => setServerOpen((o) => !o)}
+          >
+            Server address
+            <span className="muted">{server}</span>
+            <Icon name="chevron" />
+          </button>
+          {serverOpen && (
+            <div className="server-body">
+              <input
+                type="text"
+                value={server}
+                onChange={(e) => setServer(e.target.value)}
+                placeholder="http://192.168.1.5:8000"
+              />
+              <div className="sheet-actions">
+                <button className="btn btn-ghost btn-sm" onClick={testServer} disabled={testing}>
+                  {testing ? 'Testing…' : 'Test connection'}
+                </button>
+                <button className="btn btn-primary btn-sm" onClick={saveServer}>Save</button>
+              </div>
+              <Message type={serverMsg?.type}>{serverMsg?.text}</Message>
+            </div>
+          )}
+        </div>
+
+        <div className="auth-cta-area">
+          <button className="btn btn-primary btn-block" type="submit" form="auth-form" disabled={busy}>
+            {busy ? (mode === 'login' ? 'Signing in…' : 'Creating…') : mode === 'login' ? 'Sign in' : 'Create account'}
+          </button>
+        </div>
       </div>
     </div>
   )

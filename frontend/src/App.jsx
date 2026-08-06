@@ -13,6 +13,13 @@ const TABS = [
 ]
 
 const ICONS = {
+  brand: (
+    <>
+      <rect width="12" height="12" x="6" y="6" rx="2" />
+      <path d="M6 12h12" />
+      <path d="M12 12v6" />
+    </>
+  ),
   products: (
     <>
       <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
@@ -64,6 +71,8 @@ export default function App() {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('sra_user') || 'null'))
   const [tab, setTab] = useState('products')
 
+  const activeTab = TABS.find((t) => t.id === tab)
+
   const handleLogin = (u, token) => {
     localStorage.setItem('sra_user', JSON.stringify(u))
     localStorage.setItem('sra_token', token)
@@ -83,13 +92,21 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="topbar-inner">
-          <div className="brand">Sales<span>Record</span></div>
-          <div className="user-badge">
-            <span className="avatar">{user.username?.[0]?.toUpperCase()}</span>
-            <span className="user-name">{user.username}</span>
+      <header className="appbar">
+        <div className="appbar-inner">
+          <div className="appbar-left">
+            <span className="brand-mark" aria-hidden="true">
+              <TabIcon id="brand" />
+            </span>
+            <span className="appbar-title">{activeTab.label}</span>
           </div>
+          <button
+            className="avatar-btn"
+            aria-label="Open account"
+            onClick={() => setTab('profile')}
+          >
+            {user.username?.[0]?.toUpperCase()}
+          </button>
         </div>
       </header>
 
@@ -106,6 +123,7 @@ export default function App() {
             key={t.id}
             className={tab === t.id ? 'tabbar-item active' : 'tabbar-item'}
             onClick={() => setTab(t.id)}
+            aria-current={tab === t.id ? 'page' : undefined}
           >
             <span className="tabbar-icon"><TabIcon id={t.id} /></span>
             <span>{t.label}</span>

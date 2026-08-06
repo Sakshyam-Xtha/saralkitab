@@ -3,10 +3,10 @@ import { api, errorText, formatMoney } from '../api'
 import { Message, Spinner } from './ui'
 
 const PERIODS = [
-  { id: 'all', label: 'All time', days: null },
-  { id: '7', label: '7 days', days: 7 },
-  { id: '30', label: '30 days', days: 30 },
-  { id: '90', label: '90 days', days: 90 },
+  { id: 'all', label: 'All', days: null },
+  { id: '7', label: '7d', days: 7 },
+  { id: '30', label: '30d', days: 30 },
+  { id: '90', label: '90d', days: 90 },
 ]
 
 const PAYMENT_LABELS = {
@@ -218,21 +218,15 @@ export default function Analytics() {
 
   return (
     <section>
-      <div className="page-head">
-        <div>
-          <h1>Analytics</h1>
-          <p className="muted">Performance overview</p>
-        </div>
-        <div className="periods">
-          {PERIODS.map((p) => (
-            <button key={p.id} className={periodId === p.id ? 'active' : ''} onClick={() => setPeriodId(p.id)}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <Message type={msg?.type}>{msg?.text}</Message>
+
+      <div className="seg period-seg" aria-label="Period">
+        {PERIODS.map((p) => (
+          <button key={p.id} className={periodId === p.id ? 'active' : ''} onClick={() => setPeriodId(p.id)}>
+            {p.label}
+          </button>
+        ))}
+      </div>
 
       {loading ? (
         <Spinner />
@@ -252,92 +246,85 @@ export default function Analytics() {
             <Kpi label="Returns" value={stats.returnUnits} sub={formatMoney(stats.returnsValue)} />
           </div>
 
-          <div className="analytics-grid">
-            <div className="card">
-              <h2>Revenue — last 14 days</h2>
-              <VBarChart data={stats.dailyData} />
-            </div>
-            <div className="card">
-              <h2>Restock spend — last 14 days</h2>
-              <VBarChart data={stats.dailyRestockData} accent="alt" />
-            </div>
-            <div className="card">
-              <h2>Sales by payment</h2>
-              {stats.paymentData.length ? (
-                <HBarList data={stats.paymentData} format={(v) => formatMoney(v)} />
-              ) : (
-                <p className="muted">No sales in this period.</p>
-              )}
-            </div>
-            <div className="card">
-              <h2>Restocks by payment</h2>
-              {stats.restockPaymentData.length ? (
-                <HBarList data={stats.restockPaymentData} format={(v) => formatMoney(v)} />
-              ) : (
-                <p className="muted">No restocks in this period.</p>
-              )}
-            </div>
-            <div className="card">
-              <h2>Top products</h2>
-              {stats.topProducts.length ? (
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Product</th>
-                        <th className="num">Qty</th>
-                        <th className="num">Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.topProducts.map((p) => (
-                        <tr key={p.id}>
-                          <td className="strong" data-label="Product">{p.name}</td>
-                          <td className="num" data-label="Qty">{p.qty}</td>
-                          <td className="num" data-label="Revenue">{formatMoney(p.revenue)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="muted">No sales in this period.</p>
-              )}
-            </div>
-            <div className="card">
-              <h2>Revenue by category</h2>
-              {stats.categoryData.length ? (
-                <HBarList data={stats.categoryData} format={(v) => formatMoney(v)} />
-              ) : (
-                <p className="muted">No sales in this period.</p>
-              )}
+          <div className="card">
+            <h2>Revenue — last 14 days</h2>
+            <VBarChart data={stats.dailyData} />
+          </div>
+
+          <div className="card">
+            <h2>Restock spend — last 14 days</h2>
+            <VBarChart data={stats.dailyRestockData} accent="alt" />
+          </div>
+
+          <div className="card">
+            <h2>Sales by payment</h2>
+            {stats.paymentData.length ? (
+              <HBarList data={stats.paymentData} format={(v) => formatMoney(v)} />
+            ) : (
+              <p className="muted">No sales in this period.</p>
+            )}
+          </div>
+
+          <div className="card">
+            <h2>Restocks by payment</h2>
+            {stats.restockPaymentData.length ? (
+              <HBarList data={stats.restockPaymentData} format={(v) => formatMoney(v)} />
+            ) : (
+              <p className="muted">No restocks in this period.</p>
+            )}
+          </div>
+
+          <div className="card">
+            <h2>Top products</h2>
+            {stats.topProducts.length ? (
+              <div className="list">
+                {stats.topProducts.map((p) => (
+                  <div key={p.id} className="list-row">
+                    <span className="list-main">
+                      <span className="list-title">{p.name}</span>
+                      <span className="list-sub">{p.qty} sold</span>
+                    </span>
+                    <span className="list-value">{formatMoney(p.revenue)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">No sales in this period.</p>
+            )}
+          </div>
+
+          <div className="card">
+            <h2>Revenue by category</h2>
+            {stats.categoryData.length ? (
+              <HBarList data={stats.categoryData} format={(v) => formatMoney(v)} />
+            ) : (
+              <p className="muted">No sales in this period.</p>
+            )}
+          </div>
+
+          <div className="card">
+            <h2>Inventory</h2>
+            <div className="kpi-grid" style={{ marginBottom: 0 }}>
+              <Kpi label="Units in stock" value={inventory.totalUnits} />
+              <Kpi label="Stock value" value={formatMoney(inventory.costValue)} sub="at cost" />
+              <Kpi label="Retail value" value={formatMoney(inventory.retailValue)} sub="at selling" />
             </div>
           </div>
 
-          <div className="analytics-grid">
-            <div className="card">
-              <h2>Inventory</h2>
-              <div className="kpi-grid kpi-grid-sm">
-                <Kpi label="Units in stock" value={inventory.totalUnits} />
-                <Kpi label="Stock value" value={formatMoney(inventory.costValue)} sub="at cost" />
-                <Kpi label="Retail value" value={formatMoney(inventory.retailValue)} sub="at selling" />
+          <div className="card">
+            <h2>Low stock</h2>
+            {inventory.lowStock.length ? (
+              <div className="lowstock-list">
+                {inventory.lowStock.map((p) => (
+                  <div key={p.id} className="lowstock-row">
+                    <span className="strong">{p.name}</span>
+                    <span className={`badge ${num(p.stock) === 0 ? 'badge-return' : ''}`}>{p.stock} left</span>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="card">
-              <h2>Low stock</h2>
-              {inventory.lowStock.length ? (
-                <div className="lowstock-list">
-                  {inventory.lowStock.map((p) => (
-                    <div key={p.id} className="lowstock-row">
-                      <span className="strong">{p.name}</span>
-                      <span className={`badge ${num(p.stock) === 0 ? 'badge-return' : ''}`}>{p.stock} left</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="muted">All products sufficiently stocked.</p>
-              )}
-            </div>
+            ) : (
+              <p className="muted">All products sufficiently stocked.</p>
+            )}
           </div>
         </>
       )}
