@@ -398,6 +398,8 @@ select {
 }
 
 .sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 8px 18px calc(18px + env(safe-area-inset-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -991,6 +993,11 @@ select:focus {
   flex-direction: column;
   gap: 2px;
   margin: 0 -6px;
+  max-height: 58dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .picker-row {
