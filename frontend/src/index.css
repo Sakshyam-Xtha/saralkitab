@@ -351,6 +351,13 @@ select {
   transform: translateY(0);
 }
 
+.sheet-grip {
+  flex-shrink: 0;
+  touch-action: none;
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .sheet-grabber {
   width: 40px;
   height: 4px;
