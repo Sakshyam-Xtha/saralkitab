@@ -25,13 +25,15 @@ function localKey(d) {
 
 function tinyMoney(n) {
   if (!Number.isFinite(n)) return '0'
-  if (Math.abs(n) >= 1000) return `Rs ${(n / 1000).toFixed(1)}k`
-  return `Rs ${Math.round(n)}`
+  const abs = Math.abs(n)
+  if (abs >= 100000) return `${(n / 1000).toFixed(0)}k`
+  if (abs >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return `${Math.round(n)}`
 }
 
-function buildDaily(items, getValue) {
+function buildDaily(items, getValue, days = 14) {
   const map = {}
-  for (let i = 13; i >= 0; i--) {
+  for (let i = days - 1; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
     map[localKey(d)] = { label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), value: 0 }
@@ -100,6 +102,16 @@ export default function Analytics() {
   const [periodId, setPeriodId] = useState('all')
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState(null)
+  const [barDays, setBarDays] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches ? 7 : 14
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const onChange = () => setBarDays(mq.matches ? 7 : 14)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   const load = async () => {
     setLoading(true)
@@ -160,8 +172,8 @@ export default function Analytics() {
       ...sales.map((t) => ({ created_at: t.created_at, value: num(t.unit_selling_price) * num(t.quantity) })),
       ...returns.map((t) => ({ created_at: t.created_at, value: -num(t.unit_selling_price) * num(t.quantity) })),
     ]
-    const dailyData = buildDaily(dailyEntries, (e) => e.value)
-    const dailyRestockData = buildDaily(restocks, (t) => num(t.unit_cost_price) * num(t.quantity))
+    const dailyData = buildDaily(dailyEntries, (e) => e.value, barDays)
+    const dailyRestockData = buildDaily(restocks, (t) => num(t.unit_cost_price) * num(t.quantity), barDays)
 
     const productMap = new Map(products.map((p) => [p.id, p.name]))
     const salesByProduct = {}
@@ -206,7 +218,7 @@ export default function Analytics() {
       topProducts,
       categoryData,
     }
-  }, [transactions, products, period])
+  }, [transactions, products, period, barDays])
 
   const inventory = useMemo(() => {
     const totalUnits = products.reduce((a, p) => a + num(p.stock), 0)
@@ -247,12 +259,12 @@ export default function Analytics() {
           </div>
 
           <div className="card">
-            <h2>Revenue — last 14 days</h2>
+            <h2>Revenue — last {barDays} days</h2>
             <VBarChart data={stats.dailyData} />
           </div>
 
           <div className="card">
-            <h2>Restock spend — last 14 days</h2>
+            <h2>Restock spend — last {barDays} days</h2>
             <VBarChart data={stats.dailyRestockData} accent="alt" />
           </div>
 
