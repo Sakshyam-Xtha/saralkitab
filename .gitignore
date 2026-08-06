@@ -2,3 +2,4 @@
 SalesRecord.apk
 *.sqlite3
 .dockerignore
+.env
