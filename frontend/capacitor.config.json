@@ -1,5 +1,8 @@
 {
   "appId": "com.salesrecord.app",
   "appName": "Sales Record",
-  "webDir": "dist"
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  }
 }

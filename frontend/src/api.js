@@ -35,7 +35,8 @@ async function request(path, { method = 'GET', body } = {}) {
       data = null
     }
     return { ok: res.ok, status: res.status, data }
-  } catch {
+  } catch (err) {
+    console.error('[api] fetch failed', `${getBaseUrl()}${path}`, err)
     return {
       ok: false,
       status: 0,

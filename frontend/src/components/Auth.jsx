@@ -32,11 +32,13 @@ export default function Auth({ onLogin }) {
     const url = server.replace(/\/+$/, '')
     try {
       const res = await fetch(`${url}/products/`, { headers: { 'Content-Type': 'application/json' } })
+      console.log('[api] test ok', url, res.status)
       setServerMsg({
         type: 'success',
         text: `Reachable! Server responded (HTTP ${res.status}). Save, then sign in.`,
       })
-    } catch {
+    } catch (err) {
+      console.error('[api] test failed', url, err)
       setServerMsg({
         type: 'error',
         text: `Not reachable at ${url}. Check the address and that the server runs with runserver 0.0.0.0:8000.`,
