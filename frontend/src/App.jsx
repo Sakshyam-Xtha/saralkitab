@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getSettings, subscribeSettings } from './settings'
 import Products from './components/Products'
 import Transactions from './components/Transactions'
 import Analytics from './components/Analytics'
@@ -70,6 +71,22 @@ function TabIcon({ id }) {
 export default function App() {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('sra_user') || 'null'))
   const [tab, setTab] = useState('products')
+  const [settings, setSettings] = useState(getSettings)
+
+  useEffect(() => {
+    const applyTheme = () => {
+      const { theme } = getSettings()
+      const root = document.documentElement
+      root.removeAttribute('data-theme')
+      if (theme === 'dark' || theme === 'light') root.setAttribute('data-theme', theme)
+    }
+    applyTheme()
+    const unsub = subscribeSettings(() => {
+      setSettings(getSettings())
+      applyTheme()
+    })
+    return unsub
+  }, [])
 
   const activeTab = TABS.find((t) => t.id === tab)
 
@@ -98,7 +115,10 @@ export default function App() {
             <span className="brand-mark" aria-hidden="true">
               <TabIcon id="brand" />
             </span>
-            <span className="appbar-title">{activeTab.label}</span>
+            <div className="appbar-titles">
+              {settings.shop_name && <span className="appbar-kicker">{settings.shop_name}</span>}
+              <span className="appbar-title">{activeTab.label}</span>
+            </div>
           </div>
           <button
             className="avatar-btn"

@@ -143,6 +143,11 @@ class UpdateTransactionSerializer(serializers.ModelSerializer):
             old_product.stock -= old_quantity
         elif old_transaction_type == Transaction.TransactionType.RESTOCK:
             old_product.stock -= old_quantity
+
+        # when the product is included in the payload it is a fresh instance
+        # with stale stock, so carry the rollback value into it before applying
+        if new_product.pk == old_product.pk:
+            new_product.stock = old_product.stock
         
         #step-2 applying new changes   
         if instance.transaction_type == Transaction.TransactionType.SALE:

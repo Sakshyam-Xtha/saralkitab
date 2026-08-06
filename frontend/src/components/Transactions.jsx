@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, errorText, formatMoney } from '../api'
 import { Field, Message, Spinner } from './ui'
 import Sheet from './Sheet'
+import SelectField from './Select'
 
 const PAYMENT_TYPES = [
   ['cash', 'Cash'],
@@ -99,6 +100,7 @@ export default function Transactions() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const [recordOpen, setRecordOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
 
   const load = async () => {
     setLoading(true)
@@ -117,8 +119,23 @@ export default function Transactions() {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
   const openRecord = (type = 'sale') => {
+    setEditing(null)
     setRecordType(type)
     setForm(emptyForm)
+    setRecordOpen(true)
+  }
+
+  const openEdit = (t) => {
+    setEditing(t)
+    setRecordType(t.transaction_type)
+    setForm({
+      product: t.product,
+      quantity: t.quantity,
+      payment_type: t.payment_type,
+      unit_cost_price: t.unit_cost_price ?? '',
+      unit_selling_price: t.unit_selling_price ?? '',
+    })
+    setMsg(null)
     setRecordOpen(true)
   }
 
@@ -132,7 +149,19 @@ export default function Transactions() {
     setMsg(null)
 
     let res
-    if (recordType === 'restock') {
+    if (editing) {
+      const payload = {
+        product: Number(form.product),
+        transaction_type: recordType,
+        quantity: Number(form.quantity),
+        payment_type: form.payment_type,
+      }
+      if (recordType === 'restock') {
+        payload.unit_cost_price = Number(form.unit_cost_price)
+        payload.unit_selling_price = Number(form.unit_selling_price)
+      }
+      res = await api.updateTransaction(editing.id, payload)
+    } else if (recordType === 'restock') {
       res = await api.restock(form.product, {
         quantity: Number(form.quantity),
         payment_type: form.payment_type,
@@ -151,9 +180,10 @@ export default function Transactions() {
     if (res.ok) {
       setMsg({
         type: 'success',
-        text: res.data?.msg || (recordType === 'restock' ? 'Stock restocked' : 'Transaction recorded'),
+        text: res.data?.msg || (editing ? 'Transaction updated' : recordType === 'restock' ? 'Stock restocked' : 'Transaction recorded'),
       })
       setForm(emptyForm)
+      setEditing(null)
       setRecordOpen(false)
       await load()
     } else {
@@ -210,7 +240,7 @@ export default function Transactions() {
             {transactions.map((t) => {
               const meta = rowMeta(t)
               return (
-                <div key={t.id} className="list-row">
+                <button key={t.id} className="list-row" onClick={() => openEdit(t)}>
                   <span className={`list-icon ${meta.tone}`}><Icon name={meta.icon} /></span>
                   <span className="list-main">
                     <span className="list-title">{productById(t.product)?.name || `Product #${t.product}`}</span>
@@ -220,7 +250,8 @@ export default function Transactions() {
                     <span className="list-value">{meta.qty}</span>
                     <span className="list-sub">{meta.amount}</span>
                   </span>
-                </div>
+                  <Icon name="chevron" className="list-chevron" />
+                </button>
               )
             })}
           </div>
@@ -233,7 +264,7 @@ export default function Transactions() {
         </button>
       )}
 
-      <Sheet open={recordOpen} onClose={() => setRecordOpen(false)} title="Record transaction">        <div className="seg" style={{ marginBottom: 16 }}>
+      <Sheet open={recordOpen} onClose={() => { setEditing(null); setRecordOpen(false) }} title={editing ? 'Edit transaction' : 'Record transaction'}>        <div className="seg" style={{ marginBottom: 16 }}>
           {TYPES.map((t) => (
             <button
               key={t.id}
@@ -245,23 +276,24 @@ export default function Transactions() {
           ))}
         </div>
         <form className="form" onSubmit={handleSubmit}>
-          <Field label="Product">
-            <select value={form.product} onChange={set('product')} required>
-              <option value="">Select product…</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>{p.name} (stock: {p.stock})</option>
-              ))}
-            </select>
-          </Field>
+          <SelectField
+            label="Product"
+            value={form.product}
+            onChange={(v) => setForm((f) => ({ ...f, product: v }))}
+            options={products.map((p) => ({ value: p.id, label: `${p.name} (stock: ${p.stock})` }))}
+            placeholder="Select product…"
+          />
           <div className="grid-2">
             <Field label="Quantity">
               <input type="number" min="1" value={form.quantity} onChange={set('quantity')} required />
             </Field>
-            <Field label="Payment">
-              <select value={form.payment_type} onChange={set('payment_type')}>
-                {PAYMENT_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </Field>
+            <SelectField
+              label="Payment"
+              value={form.payment_type}
+              onChange={(v) => setForm((f) => ({ ...f, payment_type: v }))}
+              options={PAYMENT_TYPES.map(([v, l]) => ({ value: v, label: l }))}
+              placeholder="Select payment…"
+            />
           </div>
           {isRestock && (
             <div className="grid-2">
@@ -274,7 +306,7 @@ export default function Transactions() {
             </div>
           )}
           <button className="btn btn-primary btn-block" disabled={busy}>
-            {busy ? 'Saving…' : isRestock ? 'Restock' : recordType === 'return' ? 'Record return' : 'Record sale'}
+            {busy ? 'Saving…' : editing ? 'Save changes' : isRestock ? 'Restock' : recordType === 'return' ? 'Record return' : 'Record sale'}
           </button>
         </form>
       </Sheet>

@@ -1,3 +1,5 @@
+import { getSettings } from './settings'
+
 const isNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.()
 
 // Android emulator reaches the host machine's loopback via 10.0.2.2.
@@ -54,6 +56,7 @@ export const api = {
   restock: (id, payload) => request(`/products/restock/${id}/`, { method: 'POST', body: payload }),
   listTransactions: () => request('/products/transactions/'),
   createTransaction: (payload) => request('/products/transactions/add/', { method: 'POST', body: payload }),
+  updateTransaction: (id, payload) => request(`/products/transactions/update/${id}/`, { method: 'PATCH', body: payload }),
   register: (payload) => request('/user/register/', { method: 'POST', body: payload }),
   login: (payload) => request('/user/login/', { method: 'POST', body: payload }),
 }
@@ -73,5 +76,20 @@ export function errorText(data, fallback = 'Something went wrong') {
 
 export function formatMoney(value) {
   const n = Number(value)
-  return Number.isFinite(n) ? `Rs. ${n.toLocaleString('en-IN')}` : value
+  if (!Number.isFinite(n)) return value
+  const symbol = getSettings().currency || ''
+  const formatted = n.toLocaleString('en-IN')
+  return symbol ? `${symbol} ${formatted}` : formatted
+}
+
+export async function exportData() {
+  const [pRes, tRes] = await Promise.all([api.listProducts(), api.listTransactions()])
+  if (!pRes.ok || !tRes.ok) {
+    throw new Error(errorText(!pRes.ok ? pRes.data : tRes.data, 'Failed to export data'))
+  }
+  return {
+    exported_at: new Date().toISOString(),
+    products: pRes.data || [],
+    transactions: tRes.data || [],
+  }
 }
