@@ -8,22 +8,34 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class AddProductSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(max_length=200)
-    supplier_contact = serializers.CharField(max_length=20)
+    supplier_contact = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
     quantity = serializers.IntegerField(min_value=1)
-    
+    payment_type = serializers.ChoiceField(
+                    choices=Transaction.PaymentType.choices
+                )
     class Meta:
         model = Product
-        fields = ['product_name','cost_price','selling_price','quantity','supplier_contact','category']
+        fields = ['product_name','cost_price','selling_price','quantity','supplier_contact','category','payment_type']
 
     def create(self, validated_data):
-        return Product.objects.create(
-            name=validated_data["product_name"],
-            cost_price=validated_data["cost_price"],
-            selling_price=validated_data["selling_price"],
-            stock=validated_data["quantity"],
-            supplier_phone=validated_data["supplier_contact"],
-            category=validated_data["category"].lower()
-        )
+        product= Product.objects.create(
+                        name=validated_data["product_name"],
+                        cost_price=validated_data["cost_price"],
+                        selling_price=validated_data["selling_price"],
+                        stock=validated_data["quantity"],
+                        supplier_phone=validated_data.get("supplier_contact") or "",
+                        category=validated_data["category"].lower()
+                    )
+        if validated_data["quantity"] > 0:
+            Transaction.objects.create(
+                        product=product,
+                        transaction_type=Transaction.TransactionType.RESTOCK,
+                        quantity=validated_data["quantity"],
+                        payment_type=validated_data["payment_type"],
+                        unit_cost_price=validated_data["cost_price"],
+                        unit_selling_price=validated_data["selling_price"],
+                    )
+        return product    
 
 class UpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -48,6 +60,13 @@ class UpdateSerializer(serializers.ModelSerializer):
 
         return instance
 class ReStockSerializer(serializers.ModelSerializer):
+    unit_cost_price = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False
+    )
+    unit_selling_price = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False
+    )
+
     class Meta:
         model=Transaction
         fields = [
@@ -65,9 +84,11 @@ class ReStockSerializer(serializers.ModelSerializer):
             )
 
         product = validated_data["product"]
+        cost = validated_data.get("unit_cost_price", product.cost_price)
+        sell = validated_data.get("unit_selling_price", product.selling_price)
         product.stock += validated_data["quantity"]
-        product.cost_price = validated_data["unit_cost_price"]
-        product.selling_price = validated_data["unit_selling_price"]
+        product.cost_price = cost
+        product.selling_price = sell
         
         product.save()
         
@@ -76,8 +97,8 @@ class ReStockSerializer(serializers.ModelSerializer):
             transaction_type=Transaction.TransactionType.RESTOCK,
             quantity=validated_data["quantity"],
             payment_type=validated_data["payment_type"],
-            unit_cost_price=validated_data["unit_cost_price"],
-            unit_selling_price=validated_data["unit_selling_price"],
+            unit_cost_price=cost,
+            unit_selling_price=sell,
         )
 
 class TransactionSerializer(serializers.ModelSerializer):

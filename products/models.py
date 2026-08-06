@@ -6,7 +6,7 @@ class Product(models.Model):
     cost_price = models.DecimalField(max_digits=10, decimal_places=2)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
-    supplier_phone = models.CharField(max_length=20)
+    supplier_phone = models.CharField(max_length=20, blank=True, null=True)
     category = models.CharField(max_length=100)
 
     def __str__(self):

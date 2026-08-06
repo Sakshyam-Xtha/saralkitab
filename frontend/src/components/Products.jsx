@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api, errorText, formatMoney } from '../api'
 import { Field, Message, Spinner } from './ui'
 import Sheet, { ConfirmSheet } from './Sheet'
+import SelectField from './Select'
 
 const emptyForm = {
   product_name: '',
@@ -10,7 +11,16 @@ const emptyForm = {
   quantity: '',
   supplier_contact: '',
   category: '',
+  payment_type: 'cash',
 }
+
+const PAYMENT_TYPES = [
+  ['cash', 'Cash'],
+  ['esewa', 'eSewa'],
+  ['khalti', 'Khalti'],
+  ['card', 'Card'],
+  ['bank', 'Bank Transfer'],
+]
 
 const icons = {
   plus: <path d="M12 5v14M5 12h14" />,
@@ -134,7 +144,7 @@ export default function Products() {
       cost_price: p.cost_price,
       selling_price: p.selling_price,
       quantity: p.stock,
-      supplier_contact: p.supplier_phone,
+      supplier_contact: p.supplier_phone ?? '',
       category: p.category || '',
     })
     setEditing(p)
@@ -308,12 +318,23 @@ export default function Products() {
                 <input type="number" min={editing ? 0 : 1} value={form.quantity} onChange={set('quantity')} required />
               </Field>
               <Field label="Supplier contact">
-                <input value={form.supplier_contact} onChange={set('supplier_contact')} required />
+                <input value={form.supplier_contact} onChange={set('supplier_contact')} placeholder="Optional" />
               </Field>
             </div>
             <Field label="Category">
               <input value={form.category} onChange={set('category')} placeholder="e.g. electronics" required />
             </Field>
+            {!editing && (
+              <>
+                <SelectField
+                  label="Initial stock payment"
+                  value={form.payment_type}
+                  onChange={(v) => setForm((f) => ({ ...f, payment_type: v }))}
+                  options={PAYMENT_TYPES.map(([value, label]) => ({ value, label }))}
+                />
+                <p className="field-hint">Initial stock is recorded as a restock transaction.</p>
+              </>
+            )}
             <button className="btn btn-primary btn-block" disabled={saving}>
               {saving ? 'Saving…' : editing ? 'Save changes' : 'Add product'}
             </button>

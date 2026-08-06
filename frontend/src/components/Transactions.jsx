@@ -157,17 +157,18 @@ export default function Transactions() {
         payment_type: form.payment_type,
       }
       if (recordType === 'restock') {
-        payload.unit_cost_price = Number(form.unit_cost_price)
-        payload.unit_selling_price = Number(form.unit_selling_price)
+        if (form.unit_cost_price !== '') payload.unit_cost_price = Number(form.unit_cost_price)
+        if (form.unit_selling_price !== '') payload.unit_selling_price = Number(form.unit_selling_price)
       }
       res = await api.updateTransaction(editing.id, payload)
     } else if (recordType === 'restock') {
-      res = await api.restock(form.product, {
+      const payload = {
         quantity: Number(form.quantity),
         payment_type: form.payment_type,
-        unit_cost_price: Number(form.unit_cost_price),
-        unit_selling_price: Number(form.unit_selling_price),
-      })
+      }
+      if (form.unit_cost_price !== '') payload.unit_cost_price = Number(form.unit_cost_price)
+      if (form.unit_selling_price !== '') payload.unit_selling_price = Number(form.unit_selling_price)
+      res = await api.restock(form.product, payload)
     } else {
       res = await api.createTransaction({
         product: Number(form.product),
@@ -298,10 +299,10 @@ export default function Transactions() {
           {isRestock && (
             <div className="grid-2">
               <Field label="Unit cost">
-                <input type="number" step="0.01" min="0" value={form.unit_cost_price} onChange={set('unit_cost_price')} required />
+                <input type="number" step="0.01" min="0" value={form.unit_cost_price} onChange={set('unit_cost_price')} placeholder="Optional" />
               </Field>
               <Field label="Unit selling">
-                <input type="number" step="0.01" min="0" value={form.unit_selling_price} onChange={set('unit_selling_price')} required />
+                <input type="number" step="0.01" min="0" value={form.unit_selling_price} onChange={set('unit_selling_price')} placeholder="Optional" />
               </Field>
             </div>
           )}
