@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { getSettings, subscribeSettings } from './settings'
+import { clear as clearCache } from './cache'
 import Products from './components/Products'
 import Transactions from './components/Transactions'
 import Analytics from './components/Analytics'
 import Profile from './components/Profile'
 import Auth from './components/Auth'
+import PullToRefresh from './components/PullToRefresh'
+import { ToastProvider } from './components/Toast'
 
 const TABS = [
   { id: 'products', label: 'Products' },
@@ -98,58 +101,63 @@ export default function App() {
   }
 
   const handleLogout = () => {
+    clearCache()
     localStorage.removeItem('sra_user')
     localStorage.removeItem('sra_token')
     setUser(null)
   }
 
-  if (!user) {
-    return <Auth onLogin={handleLogin} />
-  }
-
   return (
-    <div className="app">
-      <header className="appbar">
-        <div className="appbar-inner">
-          <div className="appbar-left">
-            <span className="brand-mark" aria-hidden="true">
-              <TabIcon id="brand" />
-            </span>
-            <div className="appbar-titles">
-              {settings.shop_name && <span className="appbar-kicker">{settings.shop_name}</span>}
-              <span className="appbar-title">{activeTab.label}</span>
+    <ToastProvider>
+      {!user ? (
+        <Auth onLogin={handleLogin} />
+      ) : (
+        <div className="app">
+          <header className="appbar">
+            <div className="appbar-inner">
+              <div className="appbar-left">
+                <span className="brand-mark" aria-hidden="true">
+                  <TabIcon id="brand" />
+                </span>
+                <div className="appbar-titles">
+                  {settings.shop_name && <span className="appbar-kicker">{settings.shop_name}</span>}
+                  <span className="appbar-title">{activeTab.label}</span>
+                </div>
+              </div>
+              <button
+                className="avatar-btn"
+                aria-label="Open account"
+                onClick={() => setTab('profile')}
+              >
+                {user.username?.[0]?.toUpperCase()}
+              </button>
             </div>
-          </div>
-          <button
-            className="avatar-btn"
-            aria-label="Open account"
-            onClick={() => setTab('profile')}
-          >
-            {user.username?.[0]?.toUpperCase()}
-          </button>
+          </header>
+
+          <main className="content">
+            <PullToRefresh>
+              {tab === 'products' && <Products />}
+              {tab === 'transactions' && <Transactions />}
+              {tab === 'analytics' && <Analytics />}
+              {tab === 'profile' && <Profile user={user} onLogout={handleLogout} />}
+            </PullToRefresh>
+          </main>
+
+          <nav className="tabbar" aria-label="Primary">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                className={tab === t.id ? 'tabbar-item active' : 'tabbar-item'}
+                onClick={() => setTab(t.id)}
+                aria-current={tab === t.id ? 'page' : undefined}
+              >
+                <span className="tabbar-icon"><TabIcon id={t.id} /></span>
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
-      </header>
-
-      <main className="content">
-        {tab === 'products' && <Products />}
-        {tab === 'transactions' && <Transactions />}
-        {tab === 'analytics' && <Analytics />}
-        {tab === 'profile' && <Profile user={user} onLogout={handleLogout} />}
-      </main>
-
-      <nav className="tabbar" aria-label="Primary">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            className={tab === t.id ? 'tabbar-item active' : 'tabbar-item'}
-            onClick={() => setTab(t.id)}
-            aria-current={tab === t.id ? 'page' : undefined}
-          >
-            <span className="tabbar-icon"><TabIcon id={t.id} /></span>
-            <span>{t.label}</span>
-          </button>
-        ))}
-      </nav>
-    </div>
+      )}
+    </ToastProvider>
   )
 }

@@ -1,19 +1,13 @@
 import { useEffect, useState } from 'react'
-import { exportData, getBaseUrl, setBaseUrl } from '../api'
+import { exportData } from '../api'
 import { getSettings, setSetting, subscribeSettings } from '../settings'
-import { Field, Message } from './ui'
+import { Field } from './ui'
+import { useToast } from './Toast'
 import Sheet, { ConfirmSheet } from './Sheet'
 import { PickerList } from './Select'
 
 const icons = {
   chevron: <path d="m9 18 6-6-6-6" />,
-  globe: (
-    <>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" />
-    </>
-  ),
   logout: (
     <>
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -108,9 +102,7 @@ const groupHeading = {
 
 export default function Profile({ user, onLogout }) {
   const [settings, setSettings] = useState(getSettings)
-  const [server, setServer] = useState(getBaseUrl())
   const [shopName, setShopName] = useState(settings.shop_name)
-  const [serverSheet, setServerSheet] = useState(false)
   const [appearanceSheet, setAppearanceSheet] = useState(false)
   const [currencySheet, setCurrencySheet] = useState(false)
   const [shopSheet, setShopSheet] = useState(false)
@@ -119,33 +111,25 @@ export default function Profile({ user, onLogout }) {
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [exported, setExported] = useState(null)
   const [exporting, setExporting] = useState(false)
-  const [msg, setMsg] = useState(null)
+  const toast = useToast()
 
   useEffect(() => subscribeSettings(() => setSettings(getSettings())), [])
-
-  const saveServer = (e) => {
-    e.preventDefault()
-    setBaseUrl(server)
-    setMsg({ type: 'success', text: 'Saved. It applies on the next API call.' })
-    setServerSheet(false)
-  }
 
   const saveShopName = (e) => {
     e.preventDefault()
     setSetting('shop_name', shopName.trim())
-    setMsg({ type: 'success', text: 'Shop name saved' })
+    toast.success('Shop name saved')
     setShopSheet(false)
   }
 
   const runExport = async () => {
     setExporting(true)
-    setMsg(null)
     try {
       const data = await exportData()
       setExported(data)
       setExportSheet(true)
     } catch (err) {
-      setMsg({ type: 'error', text: err.message })
+      toast.error(err.message)
     }
     setExporting(false)
   }
@@ -153,17 +137,15 @@ export default function Profile({ user, onLogout }) {
   const copyExport = async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(exported, null, 2))
-      setMsg({ type: 'success', text: 'Copied to clipboard' })
+      toast.success('Copied to clipboard')
       setExportSheet(false)
     } catch {
-      setMsg({ type: 'error', text: 'Copy failed. Long-press the text below instead.' })
+      toast.error('Copy failed. Long-press the text below instead.')
     }
   }
 
   return (
     <section>
-      <Message type={msg?.type}>{msg?.text}</Message>
-
       <div className="card">
         <div className="profile-hero">
           <span className="avatar-lg">{user.username?.[0]?.toUpperCase()}</span>
@@ -202,16 +184,8 @@ export default function Profile({ user, onLogout }) {
         </button>
       </div>
 
-      <h2 className="muted" style={groupHeading}>Connection & tools</h2>
+      <h2 className="muted" style={groupHeading}>Tools</h2>
       <div className="settings-list">
-        <button className="settings-row" onClick={() => setServerSheet(true)}>
-          <span className="list-icon primary"><Icon name="globe" /></span>
-          <span className="settings-main">
-            <span className="settings-title">Server address</span>
-            <span className="settings-sub">{getBaseUrl()}</span>
-          </span>
-          <Icon name="chevron" className="list-chevron" />
-        </button>
         <button className="settings-row" onClick={runExport} disabled={exporting}>
           <span className="list-icon primary"><Icon name="download" /></span>
           <span className="settings-main">
@@ -275,25 +249,6 @@ export default function Profile({ user, onLogout }) {
               onChange={(e) => setShopName(e.target.value)}
               placeholder="e.g. Himalaya Stores"
               maxLength={40}
-            />
-          </Field>
-          <button className="btn btn-primary btn-block" type="submit">Save</button>
-        </form>
-      </Sheet>
-
-      <Sheet open={serverSheet} onClose={() => setServerSheet(false)} title="Server address">
-        <p className="sheet-note">
-          Where the app talks to your Django backend. On a phone, use your computer&apos;s LAN IP, e.g.{' '}
-          <code>http://192.168.1.5:8000</code>, and run the server with{' '}
-          <code>python manage.py runserver 0.0.0.0:8000</code>.
-        </p>
-        <form className="form" onSubmit={saveServer}>
-          <Field label="API base URL">
-            <input
-              type="text"
-              value={server}
-              onChange={(e) => setServer(e.target.value)}
-              placeholder="http://192.168.1.5:8000"
             />
           </Field>
           <button className="btn btn-primary btn-block" type="submit">Save</button>

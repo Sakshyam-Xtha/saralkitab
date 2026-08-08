@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api, errorText, formatMoney } from '../api'
-import { Message, Spinner } from './ui'
+import { api, formatMoney } from '../api'
+import { CacheStatus, LoadingState, OfflineState } from './ui'
+import { useRefresh } from './PullToRefresh'
+import useCachedData from '../useCachedData'
 
 const PERIODS = [
   { id: 'all', label: 'All', days: null },
@@ -97,11 +99,13 @@ function HBarList({ data, format = (v) => v }) {
 }
 
 export default function Analytics() {
-  const [products, setProducts] = useState([])
-  const [transactions, setTransactions] = useState([])
+  const prod = useCachedData(api.listProducts, 'products:list')
+  const txn = useCachedData(api.listTransactions, 'transactions:list')
+  const products = prod.data
+  const transactions = txn.data
+  const loading = prod.loading || txn.loading
+  const offline = prod.offline || txn.offline
   const [periodId, setPeriodId] = useState('all')
-  const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState(null)
   const [barDays, setBarDays] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches ? 7 : 14
   )
@@ -113,17 +117,7 @@ export default function Analytics() {
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  const load = async () => {
-    setLoading(true)
-    const [pRes, tRes] = await Promise.all([api.listProducts(), api.listTransactions()])
-    if (pRes.ok) setProducts(pRes.data || [])
-    else setMsg({ type: 'error', text: errorText(pRes.data, 'Failed to load products') })
-    if (tRes.ok) setTransactions(tRes.data || [])
-    else setMsg({ type: 'error', text: errorText(tRes.data, 'Failed to load transactions') })
-    setLoading(false)
-  }
-
-  useEffect(() => { load() }, [])
+  useRefresh(() => Promise.all([prod.reload(), txn.reload()]))
 
   const period = PERIODS.find((p) => p.id === periodId)
 
@@ -230,8 +224,13 @@ export default function Analytics() {
 
   return (
     <section>
-      <Message type={msg?.type}>{msg?.text}</Message>
-
+      <CacheStatus
+        stale={prod.stale || txn.stale}
+        updating={prod.updating || txn.updating}
+        offline={offline}
+        authError={prod.authError || txn.authError}
+        cachedAt={prod.cachedAt || txn.cachedAt}
+      />
       <div className="seg period-seg" aria-label="Period">
         {PERIODS.map((p) => (
           <button key={p.id} className={periodId === p.id ? 'active' : ''} onClick={() => setPeriodId(p.id)}>
@@ -241,7 +240,9 @@ export default function Analytics() {
       </div>
 
       {loading ? (
-        <Spinner />
+        <LoadingState label="Loading analytics…" />
+      ) : offline && transactions.length === 0 && products.length === 0 ? (
+        <OfflineState onRetry={() => Promise.all([prod.reload(), txn.reload()])} />
       ) : (
         <>
           <div className="kpi-grid">

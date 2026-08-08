@@ -1,27 +1,18 @@
 import { getSettings } from './settings'
+import { invalidate } from './cache'
 
-const isNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.()
-
-// Android emulator reaches the host machine's loopback via 10.0.2.2.
-// On a physical phone, set the server address in the Account tab instead.
-const DEVICE_API_URL = 'http://10.0.2.2:8000'
-
-export function getBaseUrl() {
-  const saved = localStorage.getItem('sra_api_url')
-  if (saved) return saved.replace(/\/+$/, '')
-  return isNative ? DEVICE_API_URL : 'http://localhost:8000'
-}
-
-export function setBaseUrl(url) {
-  localStorage.setItem('sra_api_url', url)
-}
+const API_URL = 'https://saralkitab.onrender.com'
+const REQUEST_TIMEOUT = 60_000
 
 export function getToken() {
   return localStorage.getItem('sra_token')
 }
 
-async function request(path, { method = 'GET', body } = {}) {
-  const config = { method, headers: {} }
+async function request(path, { method = 'GET', body, signal } = {}) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+  const combinedSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal
+  const config = { method, headers: {}, signal: combinedSignal }
   const token = getToken()
   if (token) config.headers['Authorization'] = `Token ${token}`
   if (body !== undefined) {
@@ -29,7 +20,7 @@ async function request(path, { method = 'GET', body } = {}) {
     config.body = JSON.stringify(body)
   }
   try {
-    const res = await fetch(`${getBaseUrl()}${path}`, config)
+    const res = await fetch(`${API_URL}${path}`, config)
     let data = null
     try {
       data = await res.json()
@@ -38,25 +29,33 @@ async function request(path, { method = 'GET', body } = {}) {
     }
     return { ok: res.ok, status: res.status, data }
   } catch (err) {
-    console.error('[api] fetch failed', `${getBaseUrl()}${path}`, err)
+    console.error('[api] fetch failed', `${API_URL}${path}`, err)
     return {
       ok: false,
       status: 0,
-      data: { msg: `Cannot reach the API at ${getBaseUrl()}. Make sure the Django server is running.` },
+      data: { msg: "Can't connect to the server. Check your internet connection and try again." },
     }
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
+async function invalidating(promise, keys) {
+  const res = await promise
+  if (res && res.ok) invalidate(...keys)
+  return res
+}
+
 export const api = {
-  listProducts: () => request('/products/'),
+  listProducts: (signal) => request('/products/', { signal }),
   getProduct: (id) => request(`/products/${id}/`),
-  addProduct: (payload) => request('/products/add/', { method: 'POST', body: payload }),
-  deleteProduct: (id) => request(`/products/delete/${id}/`, { method: 'DELETE' }),
-  updateProduct: (id, payload) => request(`/products/update/${id}/`, { method: 'PATCH', body: payload }),
-  restock: (id, payload) => request(`/products/restock/${id}/`, { method: 'POST', body: payload }),
-  listTransactions: () => request('/products/transactions/'),
-  createTransaction: (payload) => request('/products/transactions/add/', { method: 'POST', body: payload }),
-  updateTransaction: (id, payload) => request(`/products/transactions/update/${id}/`, { method: 'PATCH', body: payload }),
+  addProduct: (payload) => invalidating(request('/products/add/', { method: 'POST', body: payload }), ['products:list']),
+  deleteProduct: (id) => invalidating(request(`/products/delete/${id}/`, { method: 'DELETE' }), ['products:list']),
+  updateProduct: (id, payload) => invalidating(request(`/products/update/${id}/`, { method: 'PATCH', body: payload }), ['products:list']),
+  restock: (id, payload) => invalidating(request(`/products/restock/${id}/`, { method: 'POST', body: payload }), ['products:list', 'transactions:list']),
+  listTransactions: (signal) => request('/products/transactions/', { signal }),
+  createTransaction: (payload) => invalidating(request('/products/transactions/add/', { method: 'POST', body: payload }), ['products:list', 'transactions:list']),
+  updateTransaction: (id, payload) => invalidating(request(`/products/transactions/update/${id}/`, { method: 'PATCH', body: payload }), ['products:list', 'transactions:list']),
   register: (payload) => request('/user/register/', { method: 'POST', body: payload }),
   login: (payload) => request('/user/login/', { method: 'POST', body: payload }),
 }

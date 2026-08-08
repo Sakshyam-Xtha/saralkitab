@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { api, errorText, getBaseUrl, setBaseUrl } from '../api'
-import { Field, Message } from './ui'
+import { api, errorText } from '../api'
+import { Field } from './ui'
+import { useToast } from './Toast'
 
 const icons = {
   brand: (
@@ -10,7 +11,6 @@ const icons = {
       <path d="M12 12v6" />
     </>
   ),
-  chevron: <path d="m6 9 6 6 6-6" />,
 }
 
 function Icon({ name, className }) {
@@ -32,59 +32,27 @@ function Icon({ name, className }) {
 
 export default function Auth({ onLogin }) {
   const [mode, setMode] = useState('login')
-  const [server, setServer] = useState(getBaseUrl())
-  const [serverOpen, setServerOpen] = useState(false)
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ username: '', email: '', phone_num: '', password: '' })
   const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState(null)
-  const [serverMsg, setServerMsg] = useState(null)
-  const [testing, setTesting] = useState(false)
+  const toast = useToast()
 
   const setLogin = (key) => (e) => setLoginForm((f) => ({ ...f, [key]: e.target.value }))
   const setRegister = (key) => (e) => setRegisterForm((f) => ({ ...f, [key]: e.target.value }))
 
   const switchMode = (m) => {
     setMode(m)
-    setMsg(null)
-  }
-
-  const saveServer = (e) => {
-    e.preventDefault()
-    setBaseUrl(server)
-    setServerMsg({ type: 'success', text: 'Server address saved.' })
-  }
-
-  const testServer = async () => {
-    setTesting(true)
-    setServerMsg(null)
-    const url = server.replace(/\/+$/, '')
-    try {
-      const res = await fetch(`${url}/products/`, { headers: { 'Content-Type': 'application/json' } })
-      console.log('[api] test ok', url, res.status)
-      setServerMsg({
-        type: 'success',
-        text: `Reachable! Server responded (HTTP ${res.status}). Save, then sign in.`,
-      })
-    } catch (err) {
-      console.error('[api] test failed', url, err)
-      setServerMsg({
-        type: 'error',
-        text: `Not reachable at ${url}. Check the address and that the server runs with runserver 0.0.0.0:8000.`,
-      })
-    }
-    setTesting(false)
   }
 
   const handleLogin = async (e) => {
     e.preventDefault()
     setBusy(true)
-    setMsg(null)
     const res = await api.login(loginForm)
     if (res.ok && res.data?.user && res.data?.token) {
+      toast.success(`Welcome back, ${res.data.user.username || 'friend'}`)
       onLogin(res.data.user, res.data.token)
     } else {
-      setMsg({ type: 'error', text: errorText(res.data, 'Login failed') })
+      toast.error(errorText(res.data, 'Login failed'))
       setBusy(false)
     }
   }
@@ -92,17 +60,16 @@ export default function Auth({ onLogin }) {
   const handleRegister = async (e) => {
     e.preventDefault()
     setBusy(true)
-    setMsg(null)
     const res = await api.register({
       ...registerForm,
       phone_num: Number(registerForm.phone_num),
     })
     if (res.ok && res.data?.user) {
-      setMsg({ type: 'success', text: `${res.data.msg || 'User created'}. Sign in to continue.` })
+      toast.success(`${res.data.msg || 'User created'}. Sign in to continue.`)
       setLoginForm({ email: registerForm.email, password: registerForm.password })
       switchMode('login')
     } else {
-      setMsg({ type: 'error', text: errorText(res.data, 'Registration failed') })
+      toast.error(errorText(res.data, 'Registration failed'))
     }
     setBusy(false)
   }
@@ -127,7 +94,6 @@ export default function Auth({ onLogin }) {
         </div>
 
         <div className="auth-body">
-          <Message type={msg?.type}>{msg?.text}</Message>
           {mode === 'login' ? (
             <form className="form" onSubmit={handleLogin} id="auth-form">
               <Field label="Email">
@@ -152,35 +118,6 @@ export default function Auth({ onLogin }) {
                 <input type="password" value={registerForm.password} onChange={setRegister('password')} required />
               </Field>
             </form>
-          )}
-        </div>
-
-        <div className="server-block">
-          <button
-            className="server-toggle"
-            aria-expanded={serverOpen}
-            onClick={() => setServerOpen((o) => !o)}
-          >
-            Server address
-            <span className="muted">{server}</span>
-            <Icon name="chevron" />
-          </button>
-          {serverOpen && (
-            <div className="server-body">
-              <input
-                type="text"
-                value={server}
-                onChange={(e) => setServer(e.target.value)}
-                placeholder="http://192.168.1.5:8000"
-              />
-              <div className="sheet-actions">
-                <button className="btn btn-ghost btn-sm" onClick={testServer} disabled={testing}>
-                  {testing ? 'Testing…' : 'Test connection'}
-                </button>
-                <button className="btn btn-primary btn-sm" onClick={saveServer}>Save</button>
-              </div>
-              <Message type={serverMsg?.type}>{serverMsg?.text}</Message>
-            </div>
           )}
         </div>
 

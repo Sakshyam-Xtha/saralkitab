@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { api, errorText, formatMoney } from '../api'
-import { Field, Message, Spinner } from './ui'
+import { CacheStatus, Field, LoadingState, OfflineState } from './ui'
+import { useToast } from './Toast'
+import { useRefresh } from './PullToRefresh'
+import useCachedData from '../useCachedData'
 import Sheet from './Sheet'
 import SelectField from './Select'
 
@@ -92,27 +95,20 @@ function fmtDate(iso) {
 }
 
 export default function Transactions() {
-  const [transactions, setTransactions] = useState([])
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
+  const txn = useCachedData(api.listTransactions, 'transactions:list')
+  const prod = useCachedData(api.listProducts, 'products:list')
+  const transactions = txn.data
+  const products = prod.data
+  const loading = txn.loading || prod.loading
+  const offline = txn.offline || prod.offline
   const [recordType, setRecordType] = useState('sale')
   const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState(null)
   const [recordOpen, setRecordOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+  const toast = useToast()
 
-  const load = async () => {
-    setLoading(true)
-    const [tRes, pRes] = await Promise.all([api.listTransactions(), api.listProducts()])
-    if (tRes.ok) setTransactions(tRes.data || [])
-    else setMsg({ type: 'error', text: errorText(tRes.data, 'Failed to load transactions') })
-    if (pRes.ok) setProducts(pRes.data || [])
-    else setMsg({ type: 'error', text: errorText(pRes.data, 'Failed to load products') })
-    setLoading(false)
-  }
-
-  useEffect(() => { load() }, [])
+  useRefresh(() => Promise.all([txn.reload(), prod.reload()]))
 
   const productById = (id) => products.find((p) => String(p.id) === String(id))
 
@@ -135,18 +131,16 @@ export default function Transactions() {
       unit_cost_price: t.unit_cost_price ?? '',
       unit_selling_price: t.unit_selling_price ?? '',
     })
-    setMsg(null)
     setRecordOpen(true)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.product) {
-      setMsg({ type: 'error', text: 'Select a product' })
+      toast.error('Select a product')
       return
     }
     setBusy(true)
-    setMsg(null)
 
     let res
     if (editing) {
@@ -179,16 +173,15 @@ export default function Transactions() {
     }
 
     if (res.ok) {
-      setMsg({
-        type: 'success',
-        text: res.data?.msg || (editing ? 'Transaction updated' : recordType === 'restock' ? 'Stock restocked' : 'Transaction recorded'),
-      })
+      toast.success(
+        res.data?.msg || (editing ? 'Transaction updated' : recordType === 'restock' ? 'Stock restocked' : 'Transaction recorded')
+      )
       setForm(emptyForm)
       setEditing(null)
       setRecordOpen(false)
-      await load()
+      await Promise.all([txn.reload(), prod.reload()])
     } else {
-      setMsg({ type: 'error', text: errorText(res.data, 'Failed to save transaction') })
+      toast.error(errorText(res.data, 'Failed to save transaction'))
     }
     setBusy(false)
   }
@@ -207,8 +200,13 @@ export default function Transactions() {
 
   return (
     <section>
-      <Message type={msg?.type}>{msg?.text}</Message>
-
+      <CacheStatus
+        stale={txn.stale || prod.stale}
+        updating={txn.updating || prod.updating}
+        offline={offline}
+        authError={txn.authError || prod.authError}
+        cachedAt={txn.cachedAt || prod.cachedAt}
+      />
       <div className="chips" aria-label="Record a transaction">
         {TYPES.map((t) => (
           <button key={t.id} className="chip" onClick={() => openRecord(t.id)}>
@@ -218,12 +216,14 @@ export default function Transactions() {
       </div>
 
       {loading ? (
-        <Spinner />
-      ) : msg?.type === 'error' && transactions.length === 0 ? (
+        <LoadingState label="Loading transactions…" />
+      ) : offline && transactions.length === 0 ? (
+        <OfflineState onRetry={() => Promise.all([txn.reload(), prod.reload()])} />
+      ) : txn.error && transactions.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><Icon name="receipt" /></div>
-          <p className="muted">{msg.text}</p>
-          <button className="btn btn-ghost" onClick={load}>Retry</button>
+          <p className="muted">{txn.authError ? 'Session expired — please log in again.' : errorText(txn.error.data, 'Failed to load transactions')}</p>
+          <button className="btn btn-ghost" onClick={() => Promise.all([txn.reload(), prod.reload()])}>Retry</button>
         </div>
       ) : transactions.length === 0 ? (
         <div className="empty-state">
