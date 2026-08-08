@@ -1,3 +1,14 @@
+import { createPortal } from 'react-dom'
+
+export function Fab({ children, ...rest }) {
+  return createPortal(
+    <button className="fab" {...rest}>
+      {children}
+    </button>,
+    document.body
+  )
+}
+
 export function Field({ label, children }) {
   return (
     <label className="field">

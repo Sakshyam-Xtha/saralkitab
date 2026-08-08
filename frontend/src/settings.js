@@ -4,6 +4,7 @@ const DEFAULTS = {
   shop_name: '',
   currency: 'Rs.',
   theme: 'system',
+  font_size: 'md',
 }
 
 const listeners = new Set()

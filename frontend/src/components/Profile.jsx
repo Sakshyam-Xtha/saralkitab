@@ -57,6 +57,13 @@ const icons = {
       <path d="M12 8h.01" />
     </>
   ),
+  font: (
+    <>
+      <path d="M4 7V4h16v3" />
+      <path d="M9 20h6" />
+      <path d="M12 4v16" />
+    </>
+  ),
 }
 
 function Icon({ name, className }) {
@@ -92,6 +99,15 @@ const THEME_OPTIONS = [
 
 const THEME_LABELS = { light: 'Light', dark: 'Dark', system: 'Follow device' }
 
+const FONT_OPTIONS = [
+  { id: 'sm', label: 'Small' },
+  { id: 'md', label: 'Default' },
+  { id: 'lg', label: 'Large' },
+  { id: 'xl', label: 'Extra large' },
+]
+
+const FONT_LABELS = { sm: 'Small', md: 'Default', lg: 'Large', xl: 'Extra large' }
+
 const groupHeading = {
   fontSize: 13,
   textTransform: 'uppercase',
@@ -104,6 +120,7 @@ export default function Profile({ user, onLogout }) {
   const [settings, setSettings] = useState(getSettings)
   const [shopName, setShopName] = useState(settings.shop_name)
   const [appearanceSheet, setAppearanceSheet] = useState(false)
+  const [fontSheet, setFontSheet] = useState(false)
   const [currencySheet, setCurrencySheet] = useState(false)
   const [shopSheet, setShopSheet] = useState(false)
   const [exportSheet, setExportSheet] = useState(false)
@@ -166,6 +183,14 @@ export default function Profile({ user, onLogout }) {
           </span>
           <Icon name="chevron" className="list-chevron" />
         </button>
+        <button className="settings-row" onClick={() => setFontSheet(true)}>
+          <span className="list-icon primary"><Icon name="font" /></span>
+          <span className="settings-main">
+            <span className="settings-title">Font size</span>
+            <span className="settings-sub">{FONT_LABELS[settings.font_size] || 'Default'}</span>
+          </span>
+          <Icon name="chevron" className="list-chevron" />
+        </button>
         <button className="settings-row" onClick={() => setCurrencySheet(true)}>
           <span className="list-icon primary"><Icon name="coin" /></span>
           <span className="settings-main">
@@ -198,7 +223,7 @@ export default function Profile({ user, onLogout }) {
           <span className="list-icon primary"><Icon name="info" /></span>
           <span className="settings-main">
             <span className="settings-title">About</span>
-            <span className="settings-sub">Sales Record v0.1.0</span>
+            <span className="settings-sub">SaralKitab v0.1.0</span>
           </span>
           <Icon name="chevron" className="list-chevron" />
         </button>
@@ -220,6 +245,21 @@ export default function Profile({ user, onLogout }) {
               key={o.id}
               className={settings.theme === o.id ? 'active' : ''}
               onClick={() => setSetting('theme', o.id)}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+
+      <Sheet open={fontSheet} onClose={() => setFontSheet(false)} title="Font size">
+        <p className="sheet-note">Changes text and UI size across the whole app.</p>
+        <div className="seg">
+          {FONT_OPTIONS.map((o) => (
+            <button
+              key={o.id}
+              className={settings.font_size === o.id ? 'active' : ''}
+              onClick={() => setSetting('font_size', o.id)}
             >
               {o.label}
             </button>
@@ -268,7 +308,7 @@ export default function Profile({ user, onLogout }) {
 
       <Sheet open={aboutSheet} onClose={() => setAboutSheet(false)} title="About">
         <p className="sheet-note">
-          <strong>Sales Record</strong> — a lightweight POS &amp; inventory tracker for Android.
+          <strong>SaralKitab</strong> — a lightweight POS &amp; inventory tracker for Android.
           Keeps your products, sales, returns, restocks and analytics in sync with your own
           Django backend. Version 0.1.0.
         </p>
@@ -279,7 +319,7 @@ export default function Profile({ user, onLogout }) {
         onClose={() => setConfirmLogout(false)}
         onConfirm={onLogout}
         title="Logout"
-        message="Sign out of Sales Record on this device?"
+        message="Sign out of SaralKitab on this device?"
         confirmLabel="Logout"
       />
     </section>

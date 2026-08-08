@@ -1,6 +1,6 @@
 {
   "appId": "com.salesrecord.app",
-  "appName": "Sales Record",
+  "appName": "SaralKitab",
   "webDir": "dist",
   "android": {
     "allowMixedContent": true

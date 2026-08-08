@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, errorText, formatMoney } from '../api'
-import { CacheStatus, Field, LoadingState, OfflineState } from './ui'
+import { CacheStatus, Fab, Field, LoadingState, OfflineState } from './ui'
 import { useToast } from './Toast'
 import { useRefresh } from './PullToRefresh'
 import useCachedData from '../useCachedData'
@@ -260,12 +260,13 @@ export default function Transactions() {
       )}
 
       {transactions.length > 0 && (
-        <button className="fab" aria-label="Record transaction" onClick={() => openRecord('sale')}>
+        <Fab aria-label="Record transaction" onClick={() => openRecord('sale')}>
           <Icon name="plus" />
-        </button>
+        </Fab>
       )}
 
-      <Sheet open={recordOpen} onClose={() => { setEditing(null); setRecordOpen(false) }} title={editing ? 'Edit transaction' : 'Record transaction'}>        <div className="seg" style={{ marginBottom: 16 }}>
+      <Sheet open={recordOpen} onClose={() => { setEditing(null); setRecordOpen(false) }} title={editing ? 'Edit transaction' : 'Record transaction'}>
+        <div className="seg" style={{ marginBottom: 16 }}>
           {TYPES.map((t) => (
             <button
               key={t.id}

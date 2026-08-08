@@ -52,6 +52,19 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Font size preference — scales the whole UI uniformly (Chromium WebView) */
+html[data-font='sm'] {
+  zoom: 0.9;
+}
+
+html[data-font='lg'] {
+  zoom: 1.15;
+}
+
+html[data-font='xl'] {
+  zoom: 1.3;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', Roboto, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -138,6 +151,92 @@ select {
 
 .danger-text {
   color: var(--danger);
+}
+
+/* ---------- Pending sync section ---------- */
+
+.pending-section {
+  margin: 10px var(--gutter) 0;
+  padding: 12px 14px 4px;
+  max-width: var(--content-max);
+  margin-left: auto;
+  margin-right: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  animation: drop-in 220ms var(--ease) both;
+}
+
+.pending-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.pending-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+  animation: sync-pulse 1.6s var(--ease) infinite;
+}
+
+.pending-dot.spinning {
+  background: transparent;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--primary);
+  animation: sync-spin 0.7s linear infinite;
+}
+
+.pending-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pending-sync-btn {
+  border: none;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition: transform 120ms var(--ease);
+}
+
+.pending-sync-btn:active {
+  transform: scale(0.94);
+}
+
+.pending-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 8px 0 8px;
+  border-top: 1px solid var(--border);
+}
+
+.pending-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes sync-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ---------- App bar ---------- */

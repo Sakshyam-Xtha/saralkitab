@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { getSettings, subscribeSettings } from './settings'
 import { clear as clearCache } from './cache'
+import { flushQueue, setQueueOwner } from './queue'
 import Products from './components/Products'
 import Transactions from './components/Transactions'
 import Analytics from './components/Analytics'
 import Profile from './components/Profile'
 import Auth from './components/Auth'
 import PullToRefresh from './components/PullToRefresh'
+import PendingSection from './components/PendingSection'
 import { ToastProvider } from './components/Toast'
 
 const TABS = [
@@ -77,21 +79,28 @@ export default function App() {
   const [settings, setSettings] = useState(getSettings)
 
   useEffect(() => {
-    const applyTheme = () => {
-      const { theme } = getSettings()
+    const applyPrefs = () => {
+      const { theme, font_size } = getSettings()
       const root = document.documentElement
       root.removeAttribute('data-theme')
       if (theme === 'dark' || theme === 'light') root.setAttribute('data-theme', theme)
+      root.removeAttribute('data-font')
+      if (font_size && font_size !== 'md') root.setAttribute('data-font', font_size)
     }
-    applyTheme()
+    applyPrefs()
     const unsub = subscribeSettings(() => {
       setSettings(getSettings())
-      applyTheme()
+      applyPrefs()
     })
     return unsub
   }, [])
 
   const activeTab = TABS.find((t) => t.id === tab)
+
+  useEffect(() => {
+    setQueueOwner(user ? user.username : null)
+    if (user) flushQueue()
+  }, [user])
 
   const handleLogin = (u, token) => {
     localStorage.setItem('sra_user', JSON.stringify(u))
@@ -133,6 +142,8 @@ export default function App() {
               </button>
             </div>
           </header>
+
+          <PendingSection />
 
           <main className="content">
             <PullToRefresh>

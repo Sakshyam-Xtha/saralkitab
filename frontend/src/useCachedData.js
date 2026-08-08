@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { get, isStale, set as cacheSet, subscribeCache } from './cache'
+import { subscribeQueue } from './queue'
 
 function seed(cacheKey) {
   const entry = get(cacheKey)
@@ -69,7 +70,7 @@ export default function useCachedData(fetcher, cacheKey) {
 
   useEffect(() => {
     revalidate()
-    const unsub = subscribeCache(() => {
+    const unsubCache = subscribeCache(() => {
       const entry = get(cacheKey)
       if (entry) {
         setState((s) => ({
@@ -82,7 +83,6 @@ export default function useCachedData(fetcher, cacheKey) {
       } else {
         setState((s) => ({
           ...s,
-          data: null,
           fromCache: false,
           stale: false,
           cachedAt: null,
@@ -90,8 +90,12 @@ export default function useCachedData(fetcher, cacheKey) {
         }))
       }
     })
+    const unsubQueue = subscribeQueue((snapshot) => {
+      if (snapshot.lastResult && snapshot.lastResult.needsRefresh) revalidate()
+    })
     return () => {
-      unsub()
+      unsubCache()
+      unsubQueue()
       abortRef.current?.abort()
     }
   }, [revalidate, cacheKey])

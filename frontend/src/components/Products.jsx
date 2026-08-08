@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { api, errorText, formatMoney } from '../api'
-import { CacheStatus, Field, LoadingState, OfflineState } from './ui'
+import { CacheStatus, Fab, Field, LoadingState, OfflineState } from './ui'
 import { useToast } from './Toast'
 import { useRefresh } from './PullToRefresh'
 import useCachedData from '../useCachedData'
@@ -419,9 +419,9 @@ export default function Products() {
       )}
 
       {products.length > 0 && !selectMode && (
-        <button className="fab" aria-label="Add product" onClick={openAdd}>
+        <Fab aria-label="Add product" onClick={openAdd}>
           <Icon name="plus" />
-        </button>
+        </Fab>
       )}
 
       {isFormSheet && (

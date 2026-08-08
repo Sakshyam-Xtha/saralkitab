@@ -24,7 +24,7 @@ def add_product(request):
     serializer = s.AddProductSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
-        return Response({"msg":"new product added."},status=201)
+        return Response({"msg":"new product added.","id":serializer.instance.id},status=201)
     else:
         return Response(serializer.errors,status=400)
     
@@ -102,7 +102,7 @@ def make_transaction(request):
     serializer = s.CreateTransactionSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
-        return Response({"msg":"created new transaction record"},status=201)
+        return Response({"msg":"created new transaction record","id":serializer.instance.id},status=201)
     else:
         return Response(serializer.errors,status=400)
     
