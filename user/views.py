@@ -16,7 +16,7 @@ def index(request):
     
     return Response(serializer.data)
 
-@api_view(["GET"])
+@api_view(["GET","HEAD"])
 def health(request):
     return Response({"Status": "ok"})
 
